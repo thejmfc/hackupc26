@@ -28,3 +28,102 @@
 .country-btn:hover {
   background-color: #2563eb;
 }
+
+/* ── Search bar overlay ──────────────────────────────── */
+.input-bar {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 14px;
+  border-radius: 50px;
+
+  /* Glassmorphism */
+  background: rgba(10, 12, 20, 0.55);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+.input-bar input {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 30px;
+  color: #e8eaf0;
+  font-size: 13.5px;
+  font-family: inherit;
+  padding: 7px 14px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  min-width: 0;
+}
+
+.input-bar input::placeholder {
+  color: rgba(200, 205, 220, 0.45);
+}
+
+.input-bar input[type="text"] {
+  width: 110px;
+}
+
+.input-bar input[type="datetime-local"] {
+  width: 170px;
+  color-scheme: dark;
+}
+
+.input-bar input:focus {
+  border-color: rgba(99, 179, 237, 0.6);
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.input-bar button {
+  border: none;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 7px 18px;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.input-bar button:active {
+  transform: scale(0.96);
+}
+
+/* Search button — blue gradient */
+.input-bar button:first-of-type {
+  background: linear-gradient(135deg, #3b8ef8 0%, #1e6dd5 100%);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(59, 142, 248, 0.45);
+}
+
+.input-bar button:first-of-type:hover {
+  opacity: 0.88;
+}
+
+/* Reset button — amber/orange accent */
+.input-bar button:last-of-type:not(:first-of-type) {
+  background: linear-gradient(135deg, #f6a623 0%, #e07b1a 100%);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(240, 140, 30, 0.4);
+}
+
+.input-bar button:last-of-type:not(:first-of-type):hover {
+  opacity: 0.88;
+}
+
+/* Slim divider between inputs and button group */
+.input-bar input + button {
+  margin-left: 4px;
+}

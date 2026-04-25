@@ -20,16 +20,11 @@ def generate(prompt: str):
             ],
         ),
     ]
-    tools = [
-        types.Tool(googleSearch=types.GoogleSearch(
-        )),
-    ]
     generate_content_config = types.GenerateContentConfig(
         temperature=1.15,
         thinking_config=types.ThinkingConfig(
             thinking_level="HIGH",
         ),
-        tools=tools,
         response_mime_type="application/json",
         response_schema=genai.types.Schema(
             type = genai.types.Type.OBJECT,

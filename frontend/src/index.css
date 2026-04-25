@@ -141,3 +141,25 @@ input.font-mono {
 .input-bar input + button {
   margin-left: 4px;
 }
+
+/* Disabled state while loading */
+.input-bar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+/* Spinner ring */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  vertical-align: middle;
+}

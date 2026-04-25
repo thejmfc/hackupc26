@@ -3,10 +3,10 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-import skyscanner
-import gemini
+from . import skyscanner
+from . import gemini
 
-from cheapest import find_cheapest
+from .cheapest import find_cheapest
 
 app = FastAPI()
 

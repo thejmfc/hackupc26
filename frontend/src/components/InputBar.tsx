@@ -13,7 +13,29 @@ function InputBar() {
         });
     }, []);
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
+        if (!departure || !destination || !date) return;
+
+        const [datePart] = date.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+
+        const params = new URLSearchParams({
+            origin: departure,
+            destination,
+            year: String(year),
+            month: String(month),
+            day: String(day),
+        });
+
+        try {
+            const res = await fetch(`http://localhost:8000/flights?${params}`);
+            if (!res.ok) throw new Error(`Server error: ${res.status}`);
+            const data = await res.json();
+            console.log('[Flights]', data);
+        } catch (err) {
+            console.error('[Flights] Error:', err);
+        }
+
         notifyClear();
         setDeparture('');
         setDestination('');

@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 
-import type { Country } from './geojson';
+import { fetchCapitals, type Capital } from './capitals';
 
 import mapboxgl from 'mapbox-gl';
 
@@ -12,32 +12,36 @@ export default class Globe {
     map: mapboxgl.Map;
     markers: mapboxgl.Marker[];
 
-    constructor(ref: RefObject<string | HTMLElement>) {
+    constructor(ref: RefObject<HTMLDivElement | null>) {
         this.map = new mapboxgl.Map({
-            container: ref.current,
+            container: ref.current!,
         });
+        this.map.setStyle(import.meta.env.VITE_BLANK_URL);
         this.markers = [];
+
+        this.map.on('load', () => {
+            fetchCapitals()
+                .then(capitals => capitals.forEach(c => this.addMarker(c)))
+                .catch(err => console.error('Error fetching capitals:', err));
+        });
     }
 
-    addMarker(country: Country) {
-        console.log("[Globe/Handler] Adding marker for country: " + country.name);
+    addMarker(capital: Capital, onClick?: (capital: Capital) => void) {
+        console.log("[Globe/Handler] Adding marker for country: " + capital.name);
         const marker = new mapboxgl.Marker({ color: markerColour })
-            .setLngLat(country.coords)
+            .setLngLat(capital.coords)
             .addTo(this.map);
         this.markers.push(marker);
 
         marker.getElement().addEventListener('click', () => {
-            this.map.flyTo({
-                center: country.coords,
-                zoom: 5
-            });
-
-            // TODO: show more information about this country
+            this.map.flyTo({ center: capital.coords, zoom: 5 });
+            onClick?.(capital);
         });
     }
 
     resetMarkers() {
         this.markers.forEach(marker => marker.remove());
+        this.markers = [];
         console.log("[Globe/Handler] Markers have been reset.");
     }
 }

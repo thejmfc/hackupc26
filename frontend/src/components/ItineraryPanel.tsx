@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { onSidequests, onReset } from '../lib/airportStore';
+import { onSidequests, onReset, onLayoverOrder } from '../lib/airportStore';
 import { fetchAirportByIata } from './Airport';
 import type { SidequestResponse, Activity } from '../types/sidequest';
 
@@ -169,30 +169,33 @@ export default function ItineraryPanel() {
             setOpen(false);
         });
 
+        // Pre-seed ordered empty slots so responses arriving out of order fill the right position
+        const unsubOrder = onLayoverOrder((iatas: string[]) => {
+            setItineraries(iatas.map(iata => ({ iata, cityLabel: iata, stops: [] })));
+            setActiveIdx(0);
+        });
+
         const unsubSidequests = onSidequests(async (data: SidequestResponse) => {
             const built = await buildItinerary(data);
             const airport = await fetchAirportByIata(data.layover_airport);
             const cityLabel = airport?.name ?? data.layover_airport;
+            const entry: ItineraryEntry = { iata: data.layover_airport, cityLabel, stops: built };
             setItineraries(prev => {
-                // Replace if we already have one for this IATA (e.g. retry), else append
-                const exists = prev.findIndex(e => e.iata === data.layover_airport);
-                const entry: ItineraryEntry = { iata: data.layover_airport, cityLabel, stops: built };
-                if (exists >= 0) {
+                const idx = prev.findIndex(e => e.iata === data.layover_airport);
+                if (idx >= 0) {
                     const next = [...prev];
-                    next[exists] = entry;
+                    next[idx] = entry;
                     return next;
                 }
+                // Fallback: append if not pre-seeded (e.g. order event missed)
                 return [...prev, entry];
             });
-            setActiveIdx(() => {
-                // Always show the first itinerary and let user navigate from there
-                setOpen(true);
-                return 0;
-            });
+            setOpen(true);
         });
 
         return () => {
             unsubReset();
+            unsubOrder();
             unsubSidequests();
         };
     }, []);

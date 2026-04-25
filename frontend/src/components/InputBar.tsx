@@ -4,7 +4,7 @@
 
 
 import { useState, useEffect } from 'react';
-import { onSelection, notifyClear, notifyRoute, notifyReset, notifySidequests } from '../lib/airportStore';
+import { onSelection, notifyClear, notifyRoute, notifyReset, notifySidequests, notifyLayoverOrder } from '../lib/airportStore';
 import type { SidequestResponse } from '../types/sidequest';
 
 function InputBar() {
@@ -64,6 +64,7 @@ function InputBar() {
                 const { from, layovers, to } = first.outbound;
                 const layoverCodes: string[] = (layovers ?? []).map((l: { airport: string }) => l.airport);
                 notifyRoute([from, ...layoverCodes, to]);
+                notifyLayoverOrder(layoverCodes);
                 setRouteActive(true);
                 console.log('Route found:', [from, ...layoverCodes, to]);
                 for (const layover of data.flights[0].outbound.layovers ?? []) {

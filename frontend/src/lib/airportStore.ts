@@ -65,3 +65,16 @@ export function onSidequests(listener: SidequestListener): () => void {
     sidequestListeners.add(listener);
     return () => sidequestListeners.delete(listener);
 }
+
+type LayoverOrderListener = (iatas: string[]) => void;
+const layoverOrderListeners = new Set<LayoverOrderListener>();
+
+/** Called by InputBar with the ordered layover IATA codes *before* sidequest fetches begin. */
+export function notifyLayoverOrder(iatas: string[]) {
+    layoverOrderListeners.forEach(l => l(iatas));
+}
+
+export function onLayoverOrder(listener: LayoverOrderListener): () => void {
+    layoverOrderListeners.add(listener);
+    return () => layoverOrderListeners.delete(listener);
+}

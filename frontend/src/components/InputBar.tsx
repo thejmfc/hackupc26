@@ -67,14 +67,21 @@ function InputBar() {
         setDate('');
     };
 
+    const inputClass = "bg-amber-50/60 border border-amber-800/30 rounded-full text-stone-800 text-sm px-4 py-2 outline-none placeholder-stone-400 focus:border-amber-800/60 focus:bg-amber-50/80 transition-colors min-w-0";
+
     return (
-        <div className="input-bar">
+        <div
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-4 py-2.5 rounded-full border border-amber-800/30 shadow-lg"
+            style={{ backgroundColor: '#fdf5e4', fontFamily: "'Instrument Serif', serif" }}
+        >
             <input
                 type="text"
                 placeholder="Departure..."
                 value={departure}
                 onChange={(e) => setDeparture(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                className={inputClass}
+                style={{ width: '120px' }}
             />
             <input
                 type="text"
@@ -82,18 +89,32 @@ function InputBar() {
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                className={inputClass}
+                style={{ width: '120px' }}
             />
             <input
                 type="datetime-local"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                className={inputClass}
+                style={{ width: '180px', colorScheme: 'light' }}
             />
-            <button onClick={handleSearch} disabled={loading}>
+            <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="rounded-full text-amber-50 text-sm font-semibold px-5 py-2 cursor-pointer transition-opacity active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                style={{ backgroundColor: '#3d2314' }}
+            >
                 {loading ? <span className="spinner" /> : 'Search'}
             </button>
             {routeActive && (
-                <button onClick={() => { notifyReset(); setRouteActive(false); }}>Reset</button>
+                <button
+                    onClick={() => { notifyReset(); setRouteActive(false); }}
+                    className="rounded-full text-sm font-semibold px-5 py-2 cursor-pointer transition-opacity active:scale-95 whitespace-nowrap border border-amber-800/40 text-amber-900 bg-amber-100/60 hover:bg-amber-100"
+                >
+                    Reset
+                </button>
             )}
         </div>
     );

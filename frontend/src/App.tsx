@@ -11,7 +11,7 @@ function App() {
     const mapRef = useRef();
     const containerRef = useRef();
 
-    const [highlighted, setHighlighted] = useState(true);
+    const [highlighted, setHighlighted] = useState(null);
 
     const toggleHighlight = () => {
         if (highlighted) {
@@ -28,6 +28,11 @@ function App() {
             container: containerRef.current,
         });
         mapRef.current = map;
+
+        if (highlighted === null) {
+            map.setStyle(import.meta.env.VITE_HIGHLIGHT_URL);
+            setHighlighted(true);
+        }
 
         map.on('load', () => {
             countries.forEach((country: Country) => {

@@ -2,48 +2,67 @@ import httpx
 
 from config import settings
 
-BASE_URL = f"https://{settings.skyscanner_api_host}"
+BASE_URL = "https://partners.api.skyscanner.net/apiservices/v3"
 
 HEADERS = {
-    "x-rapidapi-key": settings.skyscanner_api_key,
-    "x-rapidapi-host": settings.skyscanner_api_host,
+    "x-api-key": settings.skyscanner_api_key,
+    "Content-Type": "application/json",
 }
 
 
-async def search_airport(query: str) -> dict:
-    async with httpx.AsyncClient(timeout=15) as client:
-        response = await client.get(
-            f"{BASE_URL}/api/v1/flights/searchAirport",
+def _build_create_payload(
+    origin_iata: str,
+    destination_iata: str,
+    year: int,
+    month: int,
+    day: int,
+    market: str = "UK",
+    locale: str = "en-GB",
+    currency: str = "GBP",
+    adults: int = 1,
+    cabin_class: str = "CABIN_CLASS_ECONOMY",
+) -> dict:
+    return {
+        "query": {
+            "market": market,
+            "locale": locale,
+            "currency": currency,
+            "queryLegs": [
+                {
+                    "originPlaceId": {"iata": origin_iata},
+                    "destinationPlaceId": {"iata": destination_iata},
+                    "date": {"year": year, "month": month, "day": day},
+                }
+            ],
+            "adults": adults,
+            "cabinClass": cabin_class,
+        }
+    }
+
+
+async def create_search(
+    origin_iata: str,
+    destination_iata: str,
+    year: int,
+    month: int,
+    day: int,
+) -> dict:
+    payload = _build_create_payload(origin_iata, destination_iata, year, month, day)
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"{BASE_URL}/flights/live/search/create",
             headers=HEADERS,
-            params={"query": query, "locale": "en-US"},
+            json=payload,
         )
         response.raise_for_status()
         return response.json()
 
 
-async def search_flights(
-    origin_sky_id: str,
-    destination_sky_id: str,
-    origin_entity_id: str,
-    destination_entity_id: str,
-    date: str,
-) -> dict:
+async def poll_search(session_token: str) -> dict:
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.get(
-            f"{BASE_URL}/api/v2/flights/searchFlights",
+        response = await client.post(
+            f"{BASE_URL}/flights/live/search/poll/{session_token}",
             headers=HEADERS,
-            params={
-                "originSkyId": origin_sky_id,
-                "destinationSkyId": destination_sky_id,
-                "originEntityId": origin_entity_id,
-                "destinationEntityId": destination_entity_id,
-                "date": date,
-                "cabinClass": "economy",
-                "adults": 1,
-                "currency": "EUR",
-                "market": "en-US",
-                "countryCode": "ES",
-            },
         )
         response.raise_for_status()
         return response.json()

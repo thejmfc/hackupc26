@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 const features = [
     {
-        icon: '✈',
+        icon: '✈️',
         title: 'Layover Planning',
         body: 'Tell us your layover details and we\'ll figure out exactly how much time you have to explore.',
     },
@@ -12,7 +12,7 @@ const features = [
         body: 'Our AI suggests a curated set of activities — food, culture, nature, shopping — that fit your time and budget.',
     },
     {
-        icon: '⏱',
+        icon: '⏰',
         title: 'Time-Aware',
         body: 'Every suggestion accounts for travel time and a 2-hour buffer so you never miss your connecting flight.',
     },

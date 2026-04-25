@@ -3,29 +3,18 @@ import mapboxgl from 'mapbox-gl';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
+
 function App() {
     const mapRef = useRef();
     const containerRef = useRef();
-    const [isHighlighted, setIsHighlighted] = useState(false);
-
-    const toggleHighlight = () => {
-        setIsHighlighted(!isHighlighted);
-    };
+    const countries = getCountries();
 
     useEffect(() => {
         const map = new mapboxgl.Map({
             container: containerRef.current,
         });
-
-        mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
         mapRef.current = map;
-
-        // Sample data: In a real app, fetch a GeoJSON of country centroids
-        const countries = [
-            { name: 'France', coords: [2.2137, 46.2276] },
-            { name: 'Japan', coords: [138.2529, 36.2048] },
-            { name: 'Brazil', coords: [-51.9253, -14.2350] }
-        ];
 
         map.on('load', () => {
             countries.forEach((country) => {
@@ -52,6 +41,24 @@ function App() {
           <div id="map-container" ref={containerRef} />
         </>
     );
+}
+
+function getCountries() {
+    let countries = [];
+    fetch("https://cdn.jsdelivr.net/gh/gavinr/world-countries-centroids@v1/dist/countries.geojson")
+        .then(res => res.json())
+        .then(geojson => {
+            geojson.features.forEach(feature => {
+                countries.push({
+                    name: feature.properties.COUNTRY,
+                    coords: feature.geometry.coordinates,
+                });
+            });
+        })
+        .catch(err => {
+            console.log(`Error fetching GeoJSON: ${err}`);
+        });
+    return countries;
 }
 
 export default App;

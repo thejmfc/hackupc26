@@ -33,6 +33,8 @@ function InputBar() {
             if (!res.ok) throw new Error(`Server error: ${res.status}`);
             const data = await res.json();
 
+            console.log('Flight search response:', data);
+
             const first = data.flights?.[0];
             if (first?.outbound) {
                 const { from, layovers, to } = first.outbound;

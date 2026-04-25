@@ -51,15 +51,19 @@ export default class Globe {
         const unsubClear = onClear(() => {
             this.departureAirport = null;
             this.destinationAirport = null;
-            this._clearRoute();
-            this._redrawAirportMarkers();
+            this.airportMarkers.forEach(m => m.remove());
+            this.airportMarkers = [];
+            this.shownAirports = [];
         });
 
         const unsubRoute = onRoute(async (iatas) => {
             if (!this.map.getCanvas()) return;
             const airports = (await Promise.all(iatas.map(iata => fetchAirportByIata(iata))))
                 .filter((a): a is Airport => a !== null);
-            if (airports.length < 2) return;
+            if (airports.length < 2) {
+                console.warn('[Globe] Could not resolve route airports:', iatas, airports);
+                return;
+            }
             this._clearRoute();
 
             // Hide all capital markers and airport pins — show only the route airports
@@ -69,8 +73,8 @@ export default class Globe {
             this.shownAirports = [];
             this.routeActive = true;
 
-            // Mark layover airports (all except first and last)
-            airports.slice(1, -1).forEach(a => {
+            // Place a dot marker for every airport on the route
+            airports.forEach(a => {
                 const el = document.createElement('div');
                 el.style.cssText = 'width:12px;height:12px;border-radius:50%;background:#f59e0b;border:2px solid #92400e;cursor:default;';
                 el.title = a.name;
@@ -83,7 +87,12 @@ export default class Globe {
             });
 
             // Draw route line
-            (this.map.getSource('route') as mapboxgl.GeoJSONSource).setData({
+            const src = this.map.getSource('route') as mapboxgl.GeoJSONSource | undefined;
+            if (!src) {
+                console.error('[Globe] route source not found — style may not have loaded yet');
+                return;
+            }
+            src.setData({
                 type: 'Feature',
                 properties: {},
                 geometry: { type: 'LineString', coordinates: airports.map(a => a.coords) },

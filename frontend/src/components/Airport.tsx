@@ -86,7 +86,7 @@ export async function fetchAirportByIata(iata: string): Promise<Airport | null> 
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
         const row = parseCsvRow(lines[i]);
-        if (row[idx.iata] !== iata) continue;
+        if (row[idx.iata].trim() !== iata.trim()) continue;
         const lat = parseFloat(row[idx.lat]);
         const lng = parseFloat(row[idx.lng]);
         if (isNaN(lat) || isNaN(lng)) continue;

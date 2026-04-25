@@ -1,110 +1,124 @@
 import os
+from huggingface_hub import InferenceClient
 from google import genai
 from google.genai import types
 import dotenv
 
 dotenv.load_dotenv()
 
+MODEL = "google/gemma-4-31B-it"
 
-def generate(prompt: str):
-    client = genai.Client(
-        api_key=os.getenv("GEMINI_API_KEY"),
+SYSTEM_PROMPT = """You are a travel assistant helping someone fill time during a layover with fun sidequests.
+Respond with valid JSON only, matching this exact schema:
+{
+  "layover_airport": "<IATA code e.g. NRT>",
+  "layover_flight_arrival": "<ISO 8601 datetime e.g. 2025-06-01T14:30:00Z>",
+  "layover_flight_departure": "<ISO 8601 datetime e.g. 2025-06-01T22:00:00Z>",
+  "time_to_complete_quests": <total hours as number>,
+  "sidequests": [
+    {
+      "type": "<category: food, culture, nature, or shopping>",
+      "description": "<activity description>",
+      "time_to_complete": <duration in hours as number>,
+      "time_to_travel": <travel time in hours as number>,
+      "price": <estimated cost in GBP as number>,
+      "latitude": <number>,
+      "longitude": <number>
+    }
+  ]
+}
+Rules: suggest 3-6 practical activities, account for travel time, leave a 2-hour buffer before departure unless told otherwise, use real place names and accurate coordinates, all numeric fields must be numbers not strings."""
+
+
+def generate(prompt: str) -> str:
+    client = InferenceClient(
+        model=MODEL,
+        token=os.getenv("HF_TOKEN"),
     )
 
-    model = "gemma-4-31b-it"
-    contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(text=prompt),
-            ],
-        ),
-    ]
-    tools = [
-        types.Tool(googleSearch=types.GoogleSearch(
-        )),
-    ]
-    generate_content_config = types.GenerateContentConfig(
-        temperature=1.15,
-        thinking_config=types.ThinkingConfig(
-            thinking_level="HIGH",
-        ),
-        tools=tools,
+    response = client.chat_completion(
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={"type": "json_object"},
+        temperature=0.7,
+        max_tokens=2048,
+    )
+
+    return response.choices[0].message.content
+
+
+def generate_with_prompt(user_prompt: str) -> str:
+    prompt = (
+        f"The user has given you the following information about their layover: {user_prompt}\n"
+        "Consider the time to travel between locations and suggest a logical flow of activities. "
+        "Account for transportation costs within the budget. "
+        "Leave a 2-hour buffer before the next flight unless the user specifies otherwise."
+    )
+    print("Now generating...")
+    return generate(prompt)
+
+
+# --- Google AI Studio version ---
+
+GEMINI_MODEL = "gemma-4-31b-it"
+
+
+def generate_google(prompt: str) -> str:
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+    response_schema = genai.types.Schema(
+        type=genai.types.Type.OBJECT,
+        required=["layover_airport", "layover_flight_arrival", "layover_flight_departure", "time_to_complete_quests", "sidequests"],
+        properties={
+            "layover_airport": genai.types.Schema(type=genai.types.Type.STRING, description="IATA airport code e.g. NRT"),
+            "layover_flight_arrival": genai.types.Schema(type=genai.types.Type.STRING, description="ISO 8601 datetime"),
+            "layover_flight_departure": genai.types.Schema(type=genai.types.Type.STRING, description="ISO 8601 datetime"),
+            "time_to_complete_quests": genai.types.Schema(type=genai.types.Type.NUMBER, description="Total hours needed"),
+            "sidequests": genai.types.Schema(
+                type=genai.types.Type.ARRAY,
+                items=genai.types.Schema(
+                    type=genai.types.Type.OBJECT,
+                    required=["type", "description", "time_to_complete", "price", "latitude", "longitude"],
+                    properties={
+                        "type": genai.types.Schema(type=genai.types.Type.STRING),
+                        "description": genai.types.Schema(type=genai.types.Type.STRING),
+                        "time_to_complete": genai.types.Schema(type=genai.types.Type.NUMBER, description="Duration in hours"),
+                        "time_to_travel": genai.types.Schema(type=genai.types.Type.NUMBER, description="Travel time in hours"),
+                        "price": genai.types.Schema(type=genai.types.Type.NUMBER, description="Estimated cost in GBP"),
+                        "latitude": genai.types.Schema(type=genai.types.Type.NUMBER),
+                        "longitude": genai.types.Schema(type=genai.types.Type.NUMBER),
+                    },
+                ),
+            ),
+        },
+    )
+
+    config = types.GenerateContentConfig(
+        temperature=0.7,
         response_mime_type="application/json",
-        response_schema=genai.types.Schema(
-            type = genai.types.Type.OBJECT,
-            required = ["layover_airport", "layover_flight_arrival", "layover_flight_departure", "time_to_complete_quests", "sidequests"],
-            properties = {
-                "layover_airport": genai.types.Schema(
-                    type = genai.types.Type.STRING,
-                    description = "IATA airport code e.g. NRT",
-                ),
-                "layover_flight_arrival": genai.types.Schema(
-                    type = genai.types.Type.STRING,
-                    description = "ISO 8601 datetime e.g. 2025-06-01T14:30:00Z",
-                ),
-                "layover_flight_departure": genai.types.Schema(
-                    type = genai.types.Type.STRING,
-                    description = "ISO 8601 datetime e.g. 2025-06-01T22:00:00Z",
-                ),
-                "time_to_complete_quests": genai.types.Schema(
-                    type = genai.types.Type.NUMBER,
-                    description = "Total hours needed to complete all activities",
-                ),
-                "sidequests": genai.types.Schema(
-                    type = genai.types.Type.ARRAY,
-                    items = genai.types.Schema(
-                        type = genai.types.Type.OBJECT,
-                        required = ["type", "description", "time_to_complete", "price", "latitude", "longitude"],
-                        properties = {
-                            "type": genai.types.Schema(
-                                type = genai.types.Type.STRING,
-                                description = "Category e.g. food, culture, nature, shopping",
-                            ),
-                            "description": genai.types.Schema(
-                                type = genai.types.Type.STRING,
-                            ),
-                            "time_to_complete": genai.types.Schema(
-                                type = genai.types.Type.NUMBER,
-                                description = "Duration in hours",
-                            ),
-                            "time_to_travel": genai.types.Schema(
-                                type = genai.types.Type.NUMBER,
-                                description = "Duration in hours",
-                            ),
-                            "price": genai.types.Schema(
-                                type = genai.types.Type.NUMBER,
-                                description = "Estimated cost in GBP",
-                            ),
-                            "latitude": genai.types.Schema(
-                                type = genai.types.Type.NUMBER,
-                            ),
-                            "longitude": genai.types.Schema(
-                                type = genai.types.Type.NUMBER,
-                            ),
-                        },
-                    ),
-                ),
-            },
-        ),
+        response_schema=response_schema,
     )
 
     result = ""
     for chunk in client.models.generate_content_stream(
-        model=model,
-        contents=contents,
-        config=generate_content_config,
+        model=GEMINI_MODEL,
+        contents=[types.Content(role="user", parts=[types.Part.from_text(text=prompt)])],
+        config=config,
     ):
-        if text := chunk.text:
-            result += text
+        if chunk.text:
+            result += chunk.text
     return result
 
-# if __name__ == "__main__":
-#     user_prompt = input("Enter your prompt: ")
-#     prompt = f"You are a travel assistant looking to help someone fill the time between a layover with some fun sidequests in the area. The user has given you the following information about their layover: {user_prompt} \n You should consider the time to travel between the previous location and the current location and suggest a logical flow of activities. When considering time to travel to these places you should also consider the pricing for transportation in the area and consider that as part of budget, choose the most suitable options based on timing and also the pricing. You should allow for some buffer time to ensure the user does not miss their next flight should there be delays, unless the user specifies otherwise, try to leave 2 hours before their next flight where they should be at the aiport."
-#     generate(prompt)
 
-def generate_with_prompt(user_prompt: str):
-    prompt = f"You are a travel assistant looking to help someone fill the time between a layover with some fun sidequests in the area. The user has given you the following information about their layover: {user_prompt} \n You should consider the time to travel between the previous location and the current location and suggest a logical flow of activities. When considering time to travel to these places you should also consider the pricing for transportation in the area and consider that as part of budget, choose the most suitable options based on timing and also the pricing. You should allow for some buffer time to ensure the user does not miss their next flight should there be delays, unless the user specifies otherwise, try to leave 2 hours before their next flight where they should be at the aiport."
-    print("Now generating...")
-    return generate(prompt)
+def generate_with_prompt_google(user_prompt: str) -> str:
+    prompt = (
+        f"You are a travel assistant helping someone fill layover time with fun sidequests. "
+        f"The user has given you the following information about their layover: {user_prompt}\n"
+        "Consider the time to travel between locations and suggest a logical flow of activities. "
+        "Account for transportation costs within the budget. "
+        "Leave a 2-hour buffer before the next flight unless the user specifies otherwise."
+    )
+    print("Now generating (Google AI Studio)...")
+    return generate_google(prompt)

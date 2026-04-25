@@ -2,5 +2,5 @@ fastapi
 uvicorn[standard]
 httpx
 pydantic-settings
-google-genai
+huggingface_hub
 python-dotenv

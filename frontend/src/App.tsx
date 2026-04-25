@@ -10,7 +10,7 @@ function App() {
     const containerRef = useRef();
     const countries = getCountries();
 
-    const [highlighted, setHighlighted] = useState(false);
+    const [highlighted, setHighlighted] = useState(true);
 
     const toggleHighlight = () => {
         if (highlighted) {

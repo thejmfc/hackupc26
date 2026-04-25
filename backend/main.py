@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import skyscanner
 import gemini
 
+from cheapest import find_cheapest
+
 app = FastAPI()
 
 BASE_URL = skyscanner.BASE_URL
@@ -68,12 +70,9 @@ async def flights(origin: str, destination: str, year: int, month: int, day: int
         merged = data
 
         for _ in range(MAX_POLLS):
-            status = merged.get("status")
-            if status == "RESULT_STATUS_COMPLETE":
+            if merged.get("status") == "RESULT_STATUS_COMPLETE":
                 break
-
             await asyncio.sleep(POLL_INTERVAL)
-
             poll = await client.post(
                 f"{BASE_URL}/flights/live/search/poll/{session_token}",
                 headers=HEADERS,
@@ -81,27 +80,7 @@ async def flights(origin: str, destination: str, year: int, month: int, day: int
             poll.raise_for_status()
             merged = poll.json()
 
-        def parse_flights(data):
-            results = data["content"]["results"]
-            flights = []
-
-            for itinerary_id, itinerary in results["itineraries"].items():
-                if itinerary["pricingOptions"]:
-                    option = itinerary["pricingOptions"][0]
-                    price = int(option["price"]["amount"]) / 1000  # Convert millicents
-
-                    flight = {
-                        "id": itinerary_id,
-                        "price": f"£{price:.2f}",
-                        "agent": option["agentIds"][0],
-                        "deep_link": option["items"][0]["deepLink"],
-                        "legs": itinerary["legIds"]
-                    }
-                    flights.append(flight)
-
-            return {"flights": flights, "total": len(flights)}
-
-        return parse_flights(merged)
+    return {"flights": find_cheapest(merged, limit=10)}
 
 
 

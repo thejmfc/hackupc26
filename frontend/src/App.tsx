@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 
-import { type Country, countries } from './lib';
+import { countries } from './lib';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -35,7 +35,7 @@ function App() {
         }
 
         map.on('load', () => {
-            countries.forEach((country: Country) => {
+            countries.forEach((country: GeoJSON.Country) => {
                 const marker = new mapboxgl.Marker({ color: '#FF0000' })
                     .setLngLat(country.coords)
                     .addTo(map);

@@ -18,7 +18,7 @@ export default function ActivityCard({ activity, index }: Props) {
 
     return (
         <div className="rounded-xl border border-amber-800/30 p-5 flex gap-4 shadow-sm" style={{ backgroundColor: '#fdf5e4' }}>
-            <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-amber-50 text-sm font-bold" style={{ backgroundColor: '#3d2314', fontFamily: "'Instrument Serif', serif" }}>
+            <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-amber-50 text-sm font-bold" style={{ backgroundColor: '#3d2314', fontFamily: "'Instrument Serif', serif" }}>
                 {index + 1}
             </div>
 

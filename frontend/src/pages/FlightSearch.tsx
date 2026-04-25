@@ -68,7 +68,7 @@ function AirportInput({ label, value, onChange, onSelect, suggestions, placehold
                                     <span className="text-stone-400 text-xs ml-2">{airport.subtitle}</span>
                                 )}
                             </div>
-                            <span className="text-xs font-mono text-amber-800 font-semibold ml-4 flex-shrink-0">
+                            <span className="text-xs font-mono text-amber-800 font-semibold ml-4 shrink-0">
                                 {airport.skyId}
                             </span>
                         </button>
@@ -210,7 +210,7 @@ export default function FlightSearch() {
 
                         <button
                             onClick={swapAirports}
-                            className="mb-0.5 flex-shrink-0 rounded-xl border border-amber-800/30 p-3 hover:bg-amber-800/10 transition-colors text-amber-800 text-lg"
+                            className="mb-0.5 shrink-0 rounded-xl border border-amber-800/30 p-3 hover:bg-amber-800/10 transition-colors text-amber-800 text-lg"
                             style={{ backgroundColor: '#f0e4c0' }}
                             title="Swap airports"
                         >

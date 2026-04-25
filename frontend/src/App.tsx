@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 
+import { type Country, countries } from './lib';
+
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
@@ -8,7 +10,6 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
 function App() {
     const mapRef = useRef();
     const containerRef = useRef();
-    const countries = getCountries();
 
     const [highlighted, setHighlighted] = useState(null);
 
@@ -34,7 +35,7 @@ function App() {
         }
 
         map.on('load', () => {
-            countries.forEach((country) => {
+            countries.forEach((country: Country) => {
                 const marker = new mapboxgl.Marker({ color: '#FF0000' })
                     .setLngLat(country.coords)
                     .addTo(map);
@@ -57,24 +58,6 @@ function App() {
           <div id="map-container" ref={containerRef} />
         </>
     );
-}
-
-function getCountries() {
-    let countries = [];
-    fetch("https://cdn.jsdelivr.net/gh/gavinr/world-countries-centroids@v1/dist/countries.geojson")
-        .then(res => res.json())
-        .then(geojson => {
-            geojson.features.forEach(feature => {
-                countries.push({
-                    name: feature.properties.COUNTRY,
-                    coords: feature.geometry.coordinates,
-                });
-            });
-        })
-        .catch(err => {
-            console.log(`Error fetching GeoJSON: ${err}`);
-        });
-    return countries;
 }
 
 export default App;

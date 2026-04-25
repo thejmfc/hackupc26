@@ -89,15 +89,22 @@ def generate(prompt: str):
         ),
     )
 
+    result = ""
     for chunk in client.models.generate_content_stream(
         model=model,
         contents=contents,
         config=generate_content_config,
     ):
         if text := chunk.text:
-            print(text, end="")
+            result += text
+    return result
 
-if __name__ == "__main__":
-    user_prompt = input("Enter your prompt: ")
+# if __name__ == "__main__":
+#     user_prompt = input("Enter your prompt: ")
+#     prompt = f"You are a travel assistant looking to help someone fill the time between a layover with some fun sidequests in the area. The user has given you the following information about their layover: {user_prompt} \n You should consider the time to travel between the previous location and the current location and suggest a logical flow of activities. When considering time to travel to these places you should also consider the pricing for transportation in the area and consider that as part of budget, choose the most suitable options based on timing and also the pricing. You should allow for some buffer time to ensure the user does not miss their next flight should there be delays, unless the user specifies otherwise, try to leave 2 hours before their next flight where they should be at the aiport."
+#     generate(prompt)
+
+def generate_with_prompt(user_prompt: str):
     prompt = f"You are a travel assistant looking to help someone fill the time between a layover with some fun sidequests in the area. The user has given you the following information about their layover: {user_prompt} \n You should consider the time to travel between the previous location and the current location and suggest a logical flow of activities. When considering time to travel to these places you should also consider the pricing for transportation in the area and consider that as part of budget, choose the most suitable options based on timing and also the pricing. You should allow for some buffer time to ensure the user does not miss their next flight should there be delays, unless the user specifies otherwise, try to leave 2 hours before their next flight where they should be at the aiport."
-    generate(prompt)
+    print("Now generating...")
+    return generate(prompt)

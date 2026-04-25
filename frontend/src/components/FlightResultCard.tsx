@@ -1,23 +1,22 @@
+import { useNavigate } from 'react-router-dom';
 import type { FlightResult } from '../types/flights';
-
-function fmtTime(iso: string) {
-    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function fmtDuration(mins: number) {
-    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-}
+import { fmtTime, fmtDuration } from '../lib/format';
 
 interface Props {
     flight: FlightResult;
+    directPrice: number | null;
 }
 
-export default function FlightResultCard({ flight }: Props) {
+export default function FlightResultCard({ flight, directPrice }: Props) {
+    const navigate = useNavigate();
     const leg = flight.outbound;
     const stopsLabel = leg.stops === 0 ? 'Direct' : `${leg.stops} stop${leg.stops > 1 ? 's' : ''}`;
     const dayDelta = Math.floor(
         (new Date(leg.arrive).getTime() - new Date(leg.depart).getTime()) / 86_400_000
     );
+    const isPlausibleDirect = directPrice && directPrice < flight.price * 3;
+    const savings = isPlausibleDirect && leg.stops >= 1 ? directPrice - flight.price : null;
+    const hasQuest = !!leg.primaryLayover;
 
     return (
         <div className="rounded-xl border border-amber-800/30 p-5 shadow-sm" style={{ backgroundColor: '#fdf5e4' }}>
@@ -77,8 +76,28 @@ export default function FlightResultCard({ flight }: Props) {
                         £{flight.price.toFixed(2)}
                     </p>
                     <p className="text-xs text-stone-400 mt-0.5">per person</p>
+                    {savings !== null && savings > 0 && (
+                        <p className="text-xs text-green-800 mt-1 font-semibold">
+                            save £{savings.toFixed(0)} vs direct
+                        </p>
+                    )}
                 </div>
             </div>
+
+            {hasQuest && (
+                <div className="mt-4 pt-4 border-t border-amber-800/20 flex items-center justify-between">
+                    <p className="text-sm text-stone-600" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                        Spare {fmtDuration(leg.primaryLayover!.waitMinutes)} in {leg.primaryLayover!.city}.
+                    </p>
+                    <button
+                        onClick={() => navigate('/quest', { state: { flight } })}
+                        className="rounded-xl px-5 py-2.5 text-amber-50 text-sm hover:bg-stone-700 transition-colors"
+                        style={{ backgroundColor: '#3d2314', fontFamily: "'Instrument Serif', serif" }}
+                    >
+                        Start sidequest →
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { FlightResult } from '../types/flights';
 import FlightResultCard from '../components/FlightResultCard';
+import Spinner from '../components/Spinner';
 
 const API_URL = 'http://localhost:8000';
 
@@ -10,6 +11,7 @@ export default function FlightSearch() {
     const [dest, setDest] = useState('');
     const [date, setDate] = useState('');
     const [flights, setFlights] = useState<FlightResult[]>([]);
+    const [directPrice, setDirectPrice] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,7 @@ export default function FlightSearch() {
         setLoading(true);
         setError(null);
         setFlights([]);
+        setDirectPrice(null);
         setSearched(true);
         try {
             const params = new URLSearchParams({
@@ -38,6 +41,7 @@ export default function FlightSearch() {
             if (!res.ok) throw new Error(`Server error: ${res.status}`);
             const data = await res.json();
             setFlights(data.flights ?? []);
+            setDirectPrice(data.directPrice ?? null);
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Something went wrong');
         } finally {
@@ -144,34 +148,54 @@ export default function FlightSearch() {
                     <button
                         onClick={handleSearch}
                         disabled={loading || !canSearch}
-                        className="w-full rounded-xl px-6 py-4 text-amber-50 font-medium hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="w-full rounded-xl px-6 py-4 text-amber-50 font-medium hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                         style={{ backgroundColor: '#3d2314', fontFamily: "'Instrument Serif', serif" }}
                     >
+                        {loading && <Spinner size={18} className="text-amber-50" />}
                         {loading ? 'Searching...' : 'Search flights'}
                     </button>
                 </div>
 
-                {error && <p className="text-red-900 text-sm">{error}</p>}
+                {error && (
+                    <div
+                        className="rounded-xl border border-red-900/30 p-4 text-red-900 text-sm"
+                        style={{ backgroundColor: '#fdf5e4', fontFamily: "'Instrument Serif', serif" }}
+                    >
+                        {error}
+                    </div>
+                )}
 
                 {loading && (
                     <div
-                        className="text-center text-stone-400 py-8"
+                        className="flex flex-col items-center gap-3 text-stone-500 py-8"
                         style={{ fontFamily: "'Instrument Serif', serif" }}
                     >
-                        Searching for flights...
+                        <Spinner size={28} className="text-amber-800" />
+                        <p>Searching {origin} → {dest}...</p>
+                        <p className="text-xs text-stone-400">This usually takes a few seconds</p>
                     </div>
                 )}
 
                 {!loading && flights.length > 0 && (
                     <div className="flex flex-col gap-3">
-                        <p
-                            className="text-sm text-stone-500"
-                            style={{ fontFamily: "'Instrument Serif', serif" }}
-                        >
-                            {flights.length} result{flights.length !== 1 ? 's' : ''}
-                        </p>
+                        <div className="flex items-baseline justify-between">
+                            <p
+                                className="text-sm text-stone-500"
+                                style={{ fontFamily: "'Instrument Serif', serif" }}
+                            >
+                                {flights.length} result{flights.length !== 1 ? 's' : ''}
+                            </p>
+                            {directPrice !== null && (
+                                <p
+                                    className="text-xs text-stone-500"
+                                    style={{ fontFamily: "'Instrument Serif', serif" }}
+                                >
+                                    Cheapest direct: <span className="text-stone-800 font-semibold">£{directPrice.toFixed(0)}</span>
+                                </p>
+                            )}
+                        </div>
                         {flights.map(flight => (
-                            <FlightResultCard key={flight.id} flight={flight} />
+                            <FlightResultCard key={flight.id} flight={flight} directPrice={directPrice} />
                         ))}
                     </div>
                 )}

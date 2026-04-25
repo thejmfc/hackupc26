@@ -1,4 +1,5 @@
 import type { Activity } from '../types/sidequest';
+import { fmtDuration } from '../lib/format';
 
 const TYPE_COLORS: Record<string, string> = {
     food: 'bg-orange-900/15 text-orange-900',
@@ -15,6 +16,8 @@ interface Props {
 export default function ActivityCard({ activity, index }: Props) {
     const { type, description, time_to_complete, time_to_travel, price } = activity;
     const colorClass = TYPE_COLORS[type.toLowerCase()] ?? 'bg-stone-800/10 text-stone-700';
+    const completeMin = Math.round(time_to_complete * 60);
+    const travelMin = time_to_travel !== undefined ? Math.round(time_to_travel * 60) : null;
 
     return (
         <div className="rounded-xl border border-amber-800/30 p-5 flex gap-4 shadow-sm" style={{ backgroundColor: '#fdf5e4' }}>
@@ -33,8 +36,8 @@ export default function ActivityCard({ activity, index }: Props) {
                 <p className="text-stone-700 text-sm leading-relaxed" style={{ fontFamily: "'Instrument Serif', serif" }}>{description}</p>
 
                 <div className="flex gap-4 mt-3 text-xs text-stone-400 tracking-wide">
-                    <span>{time_to_complete}h to complete</span>
-                    {time_to_travel !== undefined && <span>{time_to_travel}h to travel</span>}
+                    <span>{fmtDuration(completeMin)} to complete</span>
+                    {travelMin !== null && travelMin > 0 && <span>{fmtDuration(travelMin)} to travel</span>}
                 </div>
             </div>
         </div>

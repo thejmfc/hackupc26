@@ -3,6 +3,8 @@ export interface Layover {
     airportName: string;
     city: string;
     waitMinutes: number;
+    arriveAt: string;
+    departAt: string;
 }
 
 export interface FlightLeg {

@@ -12,7 +12,8 @@ app = FastAPI()
 
 BASE_URL = skyscanner.BASE_URL
 HEADERS = skyscanner.HEADERS
-generate_with_prompt = gemini.generate_with_prompt
+generate_with_prompt = gemini.generate_with_prompt_google
+
 
 POLL_INTERVAL = 2
 MAX_POLLS = 15
@@ -81,7 +82,3 @@ async def flights(origin: str, destination: str, year: int, month: int, day: int
             merged = poll.json()
 
     return {"flights": find_cheapest(merged, limit=10)}
-
-
-
-

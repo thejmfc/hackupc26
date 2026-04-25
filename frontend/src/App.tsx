@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -9,6 +9,18 @@ function App() {
     const mapRef = useRef();
     const containerRef = useRef();
     const countries = getCountries();
+
+    const [highlighted, setHighlighted] = useState(false);
+
+    const toggleHighlight = () => {
+        if (highlighted) {
+            mapRef.current.setStyle(import.meta.env.VITE_HIGHLIGHT_URL);
+            setHighlighted(false);
+        } else {
+            mapRef.current.setStyle(import.meta.env.VITE_BLANK_URL);
+            setHighlighted(true);
+        }
+    }
 
     useEffect(() => {
         const map = new mapboxgl.Map({
@@ -34,6 +46,9 @@ function App() {
 
     return (
         <>
+          <button onClick={toggleHighlight}>
+            {highlighted ? 'Show Blank Map' : 'Highlight Countries'}
+          </button>
           <div id="map-container" ref={containerRef} />
         </>
     );

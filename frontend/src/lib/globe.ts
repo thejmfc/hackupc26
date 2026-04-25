@@ -1,5 +1,7 @@
 import type { RefObject } from 'react';
 
+import type { Country } from './geojson';
+
 import mapboxgl from 'mapbox-gl';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
@@ -17,7 +19,8 @@ export default class Globe {
         this.markers = [];
     }
 
-    addMarker(country: GeoJSON.Country) {
+    addMarker(country: Country) {
+        console.log("[Globe/Handler] Adding marker for country: " + country.name);
         const marker = new mapboxgl.Marker({ color: markerColour })
             .setLngLat(country.coords)
             .addTo(this.map);
@@ -35,6 +38,6 @@ export default class Globe {
 
     resetMarkers() {
         this.markers.forEach(marker => marker.remove());
-        console.log("[Map/Handler] Markers have been reset.");
+        console.log("[Globe/Handler] Markers have been reset.");
     }
 }

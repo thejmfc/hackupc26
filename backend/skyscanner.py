@@ -1,6 +1,6 @@
 import httpx
 
-from .config import settings
+from config import settings
 
 BASE_URL = "https://partners.api.skyscanner.net/apiservices/v3"
 

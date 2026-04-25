@@ -10,6 +10,18 @@ function App() {
     const containerRef = useRef();
     const countries = getCountries();
 
+    const [highlighted, setHighlighted] = useState(false);
+
+    const toggleHighlight = () => {
+        if (highlighted) {
+            mapRef.current.setStyle(import.meta.env.VITE_HIGHLIGHT_URL);
+            setHighlighted(false);
+        } else {
+            mapRef.current.setStyle(import.meta.env.VITE_BLANK_URL);
+            setHighlighted(true);
+        }
+    }
+
     useEffect(() => {
         const map = new mapboxgl.Map({
             container: containerRef.current,
@@ -38,6 +50,9 @@ function App() {
 
     return (
         <>
+          <button onClick={toggleHighlight}>
+            {highlighted ? 'Show Blank Map' : 'Highlight Countries'}
+          </button>
           <div id="map-container" ref={containerRef} />
         </>
     );

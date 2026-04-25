@@ -45,6 +45,21 @@ export default class Globe {
                 },
             });
 
+            this.map.addSource('sidequest-route', {
+                type: 'geojson',
+                data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } },
+            });
+            this.map.addLayer({
+                id: 'sidequest-route-line',
+                type: 'line',
+                source: 'sidequest-route',
+                paint: {
+                    'line-color': '#3b82f6',
+                    'line-width': 2.5,
+                    'line-dasharray': [3, 2],
+                },
+            });
+
             fetchCapitals()
                 .then(capitals => capitals.forEach(c => this.addMarker(c)))
                 .catch(err => console.error('Error fetching capitals:', err));
@@ -113,39 +128,83 @@ export default class Globe {
 
         const unsubSidequests = onSidequests((data: SidequestResponse) => {
             if (!this.map.getCanvas()) return;
-            data.sidequests.forEach((activity: Activity) => {
-                const colour = this._activityColour(activity.type);
-                const el = document.createElement('div');
-                el.style.cssText = `width:14px;height:14px;border-radius:50%;background:${colour};border:2.5px solid #fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.35);`;
-                el.title = activity.description;
 
-                const travelLine = activity.time_to_travel != null
-                    ? `<div style="color:#78716c">&#x1F6A6; ${activity.time_to_travel}h travel</div>`
-                    : '';
-                const priceLine = activity.price === 0
-                    ? 'Free'
-                    : `&#x20AC;${activity.price}`;
+            (async () => {
+                const layoverAirport = await fetchAirportByIata(data.layover_airport);
 
-                const popup = new mapboxgl.Popup({ offset: 12, maxWidth: '240px' }).setHTML(
-                    `<div style="font-family:'Instrument Serif',serif;padding:2px 4px">
-                        <div style="font-weight:700;text-transform:capitalize;color:#3d2314;margin-bottom:4px">${activity.type}</div>
-                        <div style="color:#1c1917;margin-bottom:6px">${activity.description}</div>
-                        <div style="color:#78716c">&#x23F1; ${activity.time_to_complete}h &nbsp;|&nbsp; ${priceLine}</div>
-                        ${travelLine}
-                    </div>`
+                // Fallback: no sidequests — pin at the airport itself
+                if (!data.sidequests || data.sidequests.length === 0) {
+                    if (!layoverAirport) return;
+                    const el = document.createElement('div');
+                    el.style.cssText = 'width:16px;height:16px;border-radius:50%;background:#f59e0b;border:2.5px solid #fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.35);';
+                    const popup = new mapboxgl.Popup({ offset: 14, maxWidth: '260px' }).setHTML(
+                        `<div style="font-family:'Instrument Serif',serif;padding:2px 4px">
+                            <div style="font-weight:700;color:#3d2314;margin-bottom:4px">&#x2708; At the airport</div>
+                            <div style="color:#1c1917">Layover is too short to leave the airport &#x2014; sit back with runway views and wait to board your flight.</div>
+                        </div>`
+                    );
+                    const marker = new mapboxgl.Marker({ element: el })
+                        .setLngLat(layoverAirport.coords)
+                        .setPopup(popup)
+                        .addTo(this.map);
+                    el.addEventListener('mouseenter', () => marker.getPopup().addTo(this.map));
+                    el.addEventListener('mouseleave', () => marker.getPopup().remove());
+                    this.sidequestMarkers.push(marker);
+                    this.map.flyTo({ center: layoverAirport.coords, zoom: 13 });
+                    return;
+                }
+
+                // Place activity markers
+                data.sidequests.forEach((activity: Activity) => {
+                    const colour = this._activityColour(activity.type);
+                    const el = document.createElement('div');
+                    el.style.cssText = `width:14px;height:14px;border-radius:50%;background:${colour};border:2.5px solid #fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.35);`;
+
+                    const desc = this._cleanDescription(activity.description);
+                    const travelLine = activity.time_to_travel != null
+                        ? `<div style="color:#78716c">&#x1F68C; ${activity.time_to_travel}h travel</div>`
+                        : '';
+                    const priceLine = activity.price === 0 ? 'Free' : `&#x20AC;${activity.price}`;
+
+                    const popup = new mapboxgl.Popup({ offset: 12, maxWidth: '260px' }).setHTML(
+                        `<div style="font-family:'Instrument Serif',serif;padding:2px 4px">
+                            <div style="font-weight:700;text-transform:capitalize;color:#3d2314;margin-bottom:4px">${activity.type}</div>
+                            <div style="color:#1c1917;margin-bottom:6px">${desc}</div>
+                            <div style="color:#78716c">&#x23F1; ${activity.time_to_complete}h &nbsp;|&nbsp; ${priceLine}</div>
+                            ${travelLine}
+                        </div>`
+                    );
+
+                    const marker = new mapboxgl.Marker({ element: el })
+                        .setLngLat([activity.longitude, activity.latitude])
+                        .setPopup(popup)
+                        .addTo(this.map);
+                    el.addEventListener('mouseenter', () => marker.getPopup().addTo(this.map));
+                    el.addEventListener('mouseleave', () => marker.getPopup().remove());
+                    this.sidequestMarkers.push(marker);
+                });
+
+                // Draw straight-line route: airport -> activities -> airport
+                if (!layoverAirport) return;
+                const waypoints: [number, number][] = [
+                    layoverAirport.coords,
+                    ...data.sidequests.map((a): [number, number] => [a.longitude, a.latitude]),
+                    layoverAirport.coords,
+                ];
+                const routeSrc = this.map.getSource('sidequest-route') as mapboxgl.GeoJSONSource | undefined;
+                routeSrc?.setData({
+                    type: 'Feature', properties: {},
+                    geometry: { type: 'LineString', coordinates: waypoints },
+                });
+
+                // Fit camera to the sidequest area
+                const lngs = waypoints.map(c => c[0]);
+                const lats = waypoints.map(c => c[1]);
+                this.map.fitBounds(
+                    [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+                    { padding: 80, maxZoom: 14 }
                 );
-
-                const marker = new mapboxgl.Marker({ element: el })
-                    .setLngLat([activity.longitude, activity.latitude])
-                    .setPopup(popup)
-                    .addTo(this.map);
-
-                // Open popup on hover as well as click
-                el.addEventListener('mouseenter', () => marker.getPopup().addTo(this.map));
-                el.addEventListener('mouseleave', () => marker.getPopup().remove());
-
-                this.sidequestMarkers.push(marker);
-            });
+            })();
         });
 
         // Unsubscribe store listeners when the map is destroyed (e.g. React StrictMode double-mount)
@@ -225,6 +284,17 @@ export default class Globe {
     private _clearSidequests() {
         this.sidequestMarkers.forEach(m => m.remove());
         this.sidequestMarkers = [];
+        const src = this.map.getSource('sidequest-route') as mapboxgl.GeoJSONSource | undefined;
+        src?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
+    }
+
+    private _cleanDescription(raw: string): string {
+        return raw
+            .replace(/^description:\s*/i, '')
+            .replace(/\/\/[^\n]*/g, '')
+            .replace(/\bres\b/gi, '')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
     }
 
     private _activityColour(type: string): string {

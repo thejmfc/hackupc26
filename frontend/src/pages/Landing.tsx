@@ -44,7 +44,14 @@ export default function Landing() {
                                 className="px-8 py-3 rounded-xl text-amber-50 font-medium transition-colors hover:opacity-90"
                                 style={{ backgroundColor: '#3d2314', fontFamily: "'Instrument Serif', serif" }}
                             >
-                                Start exploring →
+                                Explore trips →
+                            </Link>
+                            <Link
+                                to="/generated/sidequests"
+                                className="px-8 py-3 rounded-xl font-medium border border-amber-800/40 text-amber-900 transition-colors hover:bg-amber-100/60"
+                                style={{ backgroundColor: '#fdf5e4', fontFamily: "'Instrument Serif', serif" }}
+                            >
+                                I have my flights →
                             </Link>
                         </div>
                     </div>

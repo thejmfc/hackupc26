@@ -52,10 +52,10 @@ export default function FlightSearch() {
             <div className="mx-auto w-full max-w-2xl flex flex-col gap-6">
                 <div className="flex items-baseline justify-between">
                     <h1
-                        className="text-8xl text-stone-800 tracking-tight"
+                        className="text-8xl text-stone-800 tracking-tight leading-none"
                         style={{ fontFamily: "'Instrument Serif', serif" }}
                     >
-                        Sidequest.
+                        side<span style={{ fontWeight: 'bold' }}>quest</span>.
                     </h1>
                     <Link
                         to="/generated/sidequests"

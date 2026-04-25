@@ -34,7 +34,12 @@ export default function GeneratedSidequests() {
         <div className="min-h-screen py-16 px-4" style={{ backgroundColor: '#f0e4c0' }}>
             <div className="mx-auto w-full max-w-xl flex flex-col gap-6">
                 <div className="flex items-baseline justify-between">
-                    <h1 className="text-8xl text-stone-800 tracking-tight" style={{ fontFamily: "'Instrument Serif', serif" }}>Sidequest.</h1>
+                    <h1
+                        className="text-8xl text-stone-800 tracking-tight leading-none"
+                        style={{ fontFamily: "'Instrument Serif', serif" }}
+                    >
+                        side<span style={{ fontWeight: 'bold' }}>quest</span>.
+                    </h1>
                     <Link
                         to="/flights"
                         className="text-sm text-amber-800 hover:text-stone-800 transition-colors"

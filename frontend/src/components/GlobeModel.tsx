@@ -198,7 +198,7 @@ export default function GlobeModel() {
             prevX = x;
         };
         const onUp = () => {
-            if (dragDistance < 4) navigate('/app');
+            if (dragDistance < 4) navigate('/flights');
             dragging = false;
         };
 

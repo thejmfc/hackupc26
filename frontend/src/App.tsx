@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
 
 import { countries } from './lib';
@@ -11,28 +11,11 @@ function App() {
     const mapRef = useRef();
     const containerRef = useRef();
 
-    const [highlighted, setHighlighted] = useState(null);
-
-    const toggleHighlight = () => {
-        if (highlighted) {
-            mapRef.current.setStyle(import.meta.env.VITE_HIGHLIGHT_URL);
-            setHighlighted(false);
-        } else {
-            mapRef.current.setStyle(import.meta.env.VITE_BLANK_URL);
-            setHighlighted(true);
-        }
-    }
-
     useEffect(() => {
         const map = new mapboxgl.Map({
             container: containerRef.current,
         });
         mapRef.current = map;
-
-        if (highlighted === null) {
-            map.setStyle(import.meta.env.VITE_HIGHLIGHT_URL);
-            setHighlighted(true);
-        }
 
         map.on('load', () => {
             countries.forEach((country: GeoJSON.Country) => {
@@ -52,9 +35,6 @@ function App() {
 
     return (
         <>
-          <button onClick={toggleHighlight}>
-            {highlighted ? 'Show Blank Map' : 'Highlight Countries'}
-          </button>
           <div id="map-container" ref={containerRef} />
         </>
     );

@@ -105,6 +105,11 @@ def generate(prompt: str):
 #     generate(prompt)
 
 def generate_with_prompt(user_prompt: str):
-    prompt = f"You are a travel assistant looking to help someone fill the time between a layover with some fun sidequests in the area. The user has given you the following information about their layover: {user_prompt} \n You should consider the time to travel between the previous location and the current location and suggest a logical flow of activities. When considering time to travel to these places you should also consider the pricing for transportation in the area and consider that as part of budget, choose the most suitable options based on timing and also the pricing. You should allow for some buffer time to ensure the user does not miss their next flight should there be delays, unless the user specifies otherwise, try to leave 2 hours before their next flight where they should be at the aiport."
+    prompt = f"""You are a travel assistant looking to help someone fill the time between a layover with some fun sidequests in the area. The user has given you the following information about their layover: {user_prompt} \n 
+                You should consider the time to travel between the previous location and the current location and suggest a logical flow of activities. When considering time to travel to these places you should also consider the 
+                pricing for transportation in the area and consider that as part of budget, choose the most suitable options based on timing and also the pricing. You should allow for some buffer time to ensure the user does not 
+                miss their next flight should there be delays, unless the user specifies otherwise, try to leave 2 hours before their next flight where they should be at the aiport. \n
+                If the layover is overnight and over a long period, you should recommend to the user to stay at a hotel and get some rest as well as some activities that they can do. You should also consider the time of day of the 
+                layover and suggest activities that are open at that time. If the user specifies how much rest they want use that otherwise, you should aim to give at least 6 hours of rest if the layover is over 10 hours and or overnight."""
     print("Now generating...")
     return generate(prompt)

@@ -3,10 +3,14 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .skyscanner import BASE_URL, HEADERS
-from .gemini import generate_with_prompt
+import skyscanner
+import gemini
 
 app = FastAPI()
+
+BASE_URL = skyscanner.BASE_URL
+HEADERS = skyscanner.HEADERS
+generate_with_prompt = gemini.generate_with_prompt
 
 POLL_INTERVAL = 2
 MAX_POLLS = 15
@@ -97,7 +101,6 @@ async def flights(origin: str, destination: str, year: int, month: int, day: int
 
             return {"flights": flights, "total": len(flights)}
 
-        # In your endpoint:
         return parse_flights(merged)
 
 

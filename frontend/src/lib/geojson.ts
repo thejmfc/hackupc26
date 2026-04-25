@@ -1,6 +1,6 @@
 const geojsonUrl = "https://cdn.jsdelivr.net/gh/gavinr/world-countries-centroids@v1/dist/countries.geojson";
 
-export let countries: GeoJSON.Country[] = [];
+let countries: GeoJSON.Country[] = [];
 
 fetch(geojsonUrl)
     .then(res => res.json())
@@ -12,3 +12,5 @@ fetch(geojsonUrl)
     .catch(err => {
         console.log(`Error fetching GeoJSON: ${err}`);
     });
+
+export default countries;

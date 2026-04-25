@@ -72,6 +72,29 @@ export async function fetchAirports(isoCode: string): Promise<Airport[]> {
     return airports;
 }
 
+export async function fetchAirportByIata(iata: string): Promise<Airport | null> {
+    const csv = await getAirportsCsv();
+    const lines = csv.split('\n');
+    const header = parseCsvRow(lines[0]);
+    const idx = {
+        ident: header.indexOf('ident'),
+        name:  header.indexOf('name'),
+        lat:   header.indexOf('latitude_deg'),
+        lng:   header.indexOf('longitude_deg'),
+        iata:  header.indexOf('iata_code'),
+    };
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const row = parseCsvRow(lines[i]);
+        if (row[idx.iata] !== iata) continue;
+        const lat = parseFloat(row[idx.lat]);
+        const lng = parseFloat(row[idx.lng]);
+        if (isNaN(lat) || isNaN(lng)) continue;
+        return { skyId: iata, entityId: row[idx.ident], name: row[idx.name], coords: [lng, lat] };
+    }
+    return null;
+}
+
 function createPlaneEl(color: string): HTMLElement {
     const el = document.createElement('div');
     el.style.cssText = 'cursor:pointer; line-height:1; user-select:none;';

@@ -5,7 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 
 function App() {
     const mapRef = useRef();
-    const mapContainerRef = useRef();
+    const containerRef = useRef();
     const [isHighlighted, setIsHighlighted] = useState(false);
 
     const toggleHighlight = () => {
@@ -13,23 +13,43 @@ function App() {
     };
 
     useEffect(() => {
-        mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
-        mapRef.current = new mapboxgl.Map({
-            container: mapContainerRef.current,
+        const map = new mapboxgl.Map({
+            container: containerRef.current,
         });
-        mapRef.current.setStyle(isHighlighted 
-            ? import.meta.env.VITE_HIGHLIGHT_URL
-            : import.meta.env.VITE_BLANK_URL
-        );
-        return () => {
-            mapRef.current.remove()
-        }
-    }, [isHighlighted]);
+
+        mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
+        mapRef.current = map;
+
+        // Sample data: In a real app, fetch a GeoJSON of country centroids
+        const countries = [
+            { name: 'France', coords: [2.2137, 46.2276] },
+            { name: 'Japan', coords: [138.2529, 36.2048] },
+            { name: 'Brazil', coords: [-51.9253, -14.2350] }
+        ];
+
+        map.on('load', () => {
+            countries.forEach((country) => {
+                const btn = document.createElement('button');
+                btn.className = 'country-btn';
+                btn.textContent = country.name;
+
+                btn.onclick = () => {
+                    alert(`You clicked on ${country.name}`);
+                    map.flyTo({ center: country.coords, zoom: 5 });
+                };
+
+                new mapboxgl.Marker(btn)
+                    .setLngLat(country.coords)
+                    .addTo(map);
+            });
+        });
+
+        return () => map.remove();
+    }, []);
 
     return (
         <>
-          <button onClick={toggleHighlight}>Toggle Highlight</button>
-          <div id="map-container" ref={mapContainerRef} />
+          <div id="map-container" ref={containerRef} />
         </>
     );
 }

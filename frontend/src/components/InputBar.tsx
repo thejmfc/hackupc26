@@ -1,41 +1,45 @@
-type InputBarProps = {
-    departure: string;
-    onDepartureChange: (value: string) => void;
-    destination: string;
-    onDestinationChange: (value: string) => void;
-    date: string;
-    onDateChange: (value: string) => void;
-    onSearch: (departure: string, destination: string, date: string) => void;
-};
+import { useState, useEffect } from 'react';
+import { onSelection, notifyClear } from '../lib/airportStore';
 
-function InputBar({ departure, onDepartureChange, destination, onDestinationChange, date, onDateChange, onSearch }: InputBarProps) {
+function InputBar() {
+    const [departure, setDeparture] = useState('');
+    const [destination, setDestination] = useState('');
+    const [date, setDate] = useState('');
+
+    useEffect(() => {
+        return onSelection((dep, dest) => {
+            setDeparture(dep ? dep.skyId : '');
+            setDestination(dest ? dest.skyId : '');
+        });
+    }, []);
+
     const handleSearch = () => {
-        onSearch(departure, destination, date);
-        onDepartureChange('');
-        onDestinationChange('');
-        onDateChange('');
+        notifyClear();
+        setDeparture('');
+        setDestination('');
+        setDate('');
     };
 
     return (
         <div className="input-bar">
             <input
                 type="text"
-                placeholder="Departure City..."
+                placeholder="Departure..."
                 value={departure}
-                onChange={(e) => onDepartureChange(e.target.value)}
+                onChange={(e) => setDeparture(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
             />
             <input
                 type="text"
-                placeholder="Destination City..."
+                placeholder="Destination..."
                 value={destination}
-                onChange={(e) => onDestinationChange(e.target.value)}
+                onChange={(e) => setDestination(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
             />
             <input
                 type="datetime-local"
                 value={date}
-                onChange={(e) => onDateChange(e.target.value)}
+                onChange={(e) => setDate(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
             />
             <button onClick={handleSearch}>Search</button>

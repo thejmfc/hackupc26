@@ -1,7 +1,8 @@
 import type { RefObject } from 'react';
 
-import { fetchCapitals, type Capital } from './capitals';
+import { fetchCapitals } from './capitals';
 import { fetchAirports, addAirportMarkers, type Airport } from '../components/Airport';
+import { notifySelection, onClear } from './airportStore';
 import mapboxgl from 'mapbox-gl';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
@@ -28,6 +29,12 @@ export default class Globe {
             fetchCapitals()
                 .then(capitals => capitals.forEach(c => this.addMarker(c)))
                 .catch(err => console.error('Error fetching capitals:', err));
+        });
+
+        onClear(() => {
+            this.departureAirport = null;
+            this.destinationAirport = null;
+            this._redrawAirportMarkers();
         });
     }
 
@@ -82,6 +89,7 @@ export default class Globe {
             this.destinationAirport = null;
         }
         this._redrawAirportMarkers();
+        notifySelection(this.departureAirport, this.destinationAirport);
     }
 
     resetMarkers() {

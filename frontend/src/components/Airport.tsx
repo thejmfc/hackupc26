@@ -1,54 +1,75 @@
 import mapboxgl from 'mapbox-gl';
 
+const AIRPORTS_CSV_URL = 'https://davidmegginson.github.io/ourairports-data/airports.csv';
+
 export interface Airport {
-    skyId: string;
+    skyId: string;   // IATA code
     entityId: string;
     name: string;
     coords: [number, number];
 }
 
-async function geocodeAirport(iata: string): Promise<[number, number] | null> {
-    const token = import.meta.env.VITE_MAPBOX_API_TOKEN;
-    const query = encodeURIComponent(`${iata} airport`);
-    const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?types=poi&access_token=${token}&limit=1`
-    );
-    const data = await res.json();
-    return data.features?.[0]?.center ?? null;
+let cachedCsv: string | null = null;
+
+async function getAirportsCsv(): Promise<string> {
+    if (!cachedCsv) {
+        const res = await fetch(AIRPORTS_CSV_URL);
+        cachedCsv = await res.text();
+    }
+    return cachedCsv;
 }
 
-const SKYSCANNER_HOST = 'sky-scrapper.p.rapidapi.com';
-
-export async function fetchAirports(countryName: string): Promise<Airport[]> {
-    const res = await fetch(
-        `https://${SKYSCANNER_HOST}/api/v1/flights/searchAirport?query=${encodeURIComponent(countryName)}&locale=en-US`,
-        {
-            headers: {
-                'x-rapidapi-key': import.meta.env.VITE_SKYSCANNER_API_KEY,
-                'x-rapidapi-host': SKYSCANNER_HOST,
-            },
+function parseCsvRow(row: string): string[] {
+    const fields: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (const ch of row) {
+        if (ch === '"') {
+            inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+            fields.push(current);
+            current = '';
+        } else {
+            current += ch;
         }
-    );
-    const data = await res.json();
+    }
+    fields.push(current);
+    return fields;
+}
 
-    const entities = (data.data ?? []).filter(
-        (e: any) => e.navigation?.entityType === 'AIRPORT'
-    );
+export async function fetchAirports(isoCode: string): Promise<Airport[]> {
+    const csv = await getAirportsCsv();
+    const lines = csv.split('\n');
+    const header = parseCsvRow(lines[0]);
+    const idx = {
+        ident:      header.indexOf('ident'),
+        type:       header.indexOf('type'),
+        name:       header.indexOf('name'),
+        lat:        header.indexOf('latitude_deg'),
+        lng:        header.indexOf('longitude_deg'),
+        isoCountry: header.indexOf('iso_country'),
+        iata:       header.indexOf('iata_code'),
+    };
 
-    const airports = await Promise.all(
-        entities.map(async (e: any) => {
-            const coords = await geocodeAirport(e.skyId);
-            if (!coords) return null;
-            return {
-                skyId: e.skyId,
-                entityId: e.entityId,
-                name: e.presentation?.title ?? e.skyId,
-                coords,
-            } as Airport;
-        })
-    );
-
-    return airports.filter(Boolean) as Airport[];
+    const airports: Airport[] = [];
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const row = parseCsvRow(lines[i]);
+        if (row[idx.isoCountry] !== isoCode) continue;
+        if (row[idx.type] !== 'large_airport' || row[idx.iata] == null) continue;
+        const iata = row[idx.iata];
+        if (!iata) continue;
+        const lat = parseFloat(row[idx.lat]);
+        const lng = parseFloat(row[idx.lng]);
+        if (isNaN(lat) || isNaN(lng)) continue;
+        airports.push({
+            skyId:    iata,
+            entityId: row[idx.ident],
+            name:     row[idx.name],
+            coords:   [lng, lat],
+        });
+    }
+    return airports;
 }
 
 function createPlaneEl(color: string): HTMLElement {
@@ -72,7 +93,7 @@ export function addAirportMarkers(
             ? '#22c55e'
             : airport.skyId === destinationId
             ? '#3b82f6'
-            : '#9ca3af';
+            : '#3a353b';
 
         const el = createPlaneEl(color);
         const marker = new mapboxgl.Marker({ element: el })

@@ -31,7 +31,8 @@ export default class Globe {
         });
     }
 
-    addMarker(place: { name: string; countryName?: string; isoCode?: string; coords: [number, number] }) {
+    addMarker(capital: Capital, onClick?: (capital: Capital) => void) {
+        console.log("[Globe/Handler] Adding marker for country: " + capital.name);
         const marker = new mapboxgl.Marker({ color: markerColour })
             .setLngLat(place.coords)
             .addTo(this.map);

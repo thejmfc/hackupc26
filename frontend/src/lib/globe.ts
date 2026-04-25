@@ -31,13 +31,11 @@ export default class Globe {
         });
     }
 
-    addMarker(capital: Capital, onClick?: (capital: Capital) => void) {
-        console.log("[Globe/Handler] Adding marker for country: " + capital.name);
+    addMarker(place: { name: string; countryName?: string; isoCode?: string; coords: [number, number] }) {
         const marker = new mapboxgl.Marker({ color: markerColour })
             .setLngLat(place.coords)
             .addTo(this.map);
         this.markers.push(marker);
-        console.log(`[Map/Marker] Added marker for ${place.name} at [${place.coords[0]}, ${place.coords[1]}].`);
 
         marker.getElement().addEventListener('click', () => {
             this.map.flyTo({ center: place.coords, zoom: 5 });

@@ -1,8 +1,8 @@
 import type { RefObject } from 'react';
 
 import { fetchCapitals } from './capitals';
-import { fetchAirports, addAirportMarkers, type Airport } from '../components/Airport';
-import { notifySelection, onClear } from './airportStore';
+import { fetchAirports, fetchAirportByIata, addAirportMarkers, type Airport } from '../components/Airport';
+import { notifySelection, onClear, onRoute, onReset } from './airportStore';
 import mapboxgl from 'mapbox-gl';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
@@ -14,6 +14,8 @@ export default class Globe {
     markers: mapboxgl.Marker[];
 
     private airportMarkers: mapboxgl.Marker[] = [];
+    private routeMarkers: mapboxgl.Marker[] = [];
+    private routeActive = false;
     private departureAirport: Airport | null = null;
     private destinationAirport: Airport | null = null;
     private shownAirports: Airport[] = [];
@@ -26,15 +28,90 @@ export default class Globe {
         this.markers = [];
 
         this.map.on('load', () => {
+            this.map.addSource('route', {
+                type: 'geojson',
+                data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } },
+            });
+            this.map.addLayer({
+                id: 'route-line',
+                type: 'line',
+                source: 'route',
+                paint: {
+                    'line-color': '#f59e0b',
+                    'line-width': 2.5,
+                    'line-dasharray': [4, 3],
+                },
+            });
+
             fetchCapitals()
                 .then(capitals => capitals.forEach(c => this.addMarker(c)))
                 .catch(err => console.error('Error fetching capitals:', err));
         });
 
-        onClear(() => {
+        const unsubClear = onClear(() => {
             this.departureAirport = null;
             this.destinationAirport = null;
-            this._redrawAirportMarkers();
+            this.airportMarkers.forEach(m => m.remove());
+            this.airportMarkers = [];
+            this.shownAirports = [];
+        });
+
+        const unsubRoute = onRoute(async (iatas) => {
+            if (!this.map.getCanvas()) return;
+            const airports = (await Promise.all(iatas.map(iata => fetchAirportByIata(iata))))
+                .filter((a): a is Airport => a !== null);
+            if (airports.length < 2) {
+                console.warn('[Globe] Could not resolve route airports:', iatas, airports);
+                return;
+            }
+            this._clearRoute();
+
+            // Hide all capital markers and airport pins — show only the route airports
+            this.markers.forEach(m => m.getElement().style.display = 'none');
+            this.airportMarkers.forEach(m => m.remove());
+            this.airportMarkers = [];
+            this.shownAirports = [];
+            this.routeActive = true;
+
+            // Place a dot marker for every airport on the route
+            airports.forEach(a => {
+                const el = document.createElement('div');
+                el.style.cssText = 'width:12px;height:12px;border-radius:50%;background:#f59e0b;border:2px solid #92400e;cursor:default;';
+                el.title = a.name;
+                this.routeMarkers.push(
+                    new mapboxgl.Marker({ element: el })
+                        .setLngLat(a.coords)
+                        .setPopup(new mapboxgl.Popup({ offset: 10 }).setText(a.name))
+                        .addTo(this.map)
+                );
+            });
+
+            // Draw route line
+            const src = this.map.getSource('route') as mapboxgl.GeoJSONSource | undefined;
+            if (!src) {
+                console.error('[Globe] route source not found — style may not have loaded yet');
+                return;
+            }
+            src.setData({
+                type: 'Feature',
+                properties: {},
+                geometry: { type: 'LineString', coordinates: airports.map(a => a.coords) },
+            });
+        });
+
+        const unsubReset = onReset(() => {
+            if (!this.map.getCanvas()) return;
+            this._clearRoute();
+            this.routeActive = false;
+            // Restore capital markers
+            this.markers.forEach(m => m.getElement().style.display = '');
+        });
+
+        // Unsubscribe store listeners when the map is destroyed (e.g. React StrictMode double-mount)
+        this.map.once('remove', () => {
+            unsubClear();
+            unsubRoute();
+            unsubReset();
         });
     }
 
@@ -42,6 +119,10 @@ export default class Globe {
         const marker = new mapboxgl.Marker({ color: markerColour })
             .setLngLat(place.coords)
             .addTo(this.map);
+
+        // Hide immediately if a route is currently shown
+        if (this.routeActive) marker.getElement().style.display = 'none';
+
         this.markers.push(marker);
 
         marker.getElement().addEventListener('click', () => {
@@ -90,6 +171,13 @@ export default class Globe {
         }
         this._redrawAirportMarkers();
         notifySelection(this.departureAirport, this.destinationAirport);
+    }
+
+    private _clearRoute() {
+        this.routeMarkers.forEach(m => m.remove());
+        this.routeMarkers = [];
+        const src = this.map.getSource('route') as mapboxgl.GeoJSONSource | undefined;
+        src?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
     }
 
     resetMarkers() {

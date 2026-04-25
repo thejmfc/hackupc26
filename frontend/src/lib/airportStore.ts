@@ -25,3 +25,29 @@ export function onClear(listener: ClearListener): () => void {
     clearListeners.add(listener);
     return () => clearListeners.delete(listener);
 }
+
+type RouteListener = (iatas: string[]) => void;
+const routeListeners = new Set<RouteListener>();
+
+/** Called by InputBar with ordered IATA codes [from, ...layovers, to] after a flight search. */
+export function notifyRoute(iatas: string[]) {
+    routeListeners.forEach(l => l(iatas));
+}
+
+export function onRoute(listener: RouteListener): () => void {
+    routeListeners.add(listener);
+    return () => routeListeners.delete(listener);
+}
+
+type ResetListener = () => void;
+const resetListeners = new Set<ResetListener>();
+
+/** Called by InputBar reset button to clear the route and restore the globe. */
+export function notifyReset() {
+    resetListeners.forEach(l => l());
+}
+
+export function onReset(listener: ResetListener): () => void {
+    resetListeners.add(listener);
+    return () => resetListeners.delete(listener);
+}

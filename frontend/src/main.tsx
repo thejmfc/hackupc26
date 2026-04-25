@@ -5,6 +5,7 @@ import './index.css';
 import App from './App.tsx';
 import GeneratedSidequests from '../pages/GeneratedSidequests.tsx';
 import FlightSearch from '../pages/FlightSearch.tsx';
+import Quest from '../pages/Quest.tsx';
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/" element={<App />} />
                 <Route path="/generated/sidequests" element={<GeneratedSidequests />} />
                 <Route path="/flights" element={<FlightSearch />} />
+                <Route path="/quest" element={<Quest />} />
             </Routes>
         </BrowserRouter>
     </StrictMode>,

@@ -1,71 +1,104 @@
+import { useNavigate } from 'react-router-dom';
 import type { FlightResult } from '../types/flights';
+import { fmtTime, fmtDuration } from '../lib/format';
 
 interface Props {
     flight: FlightResult;
+    directPrice: number | null;
 }
 
-function formatTime(iso: string) {
-    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatDuration(minutes: number) {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-export default function FlightResultCard({ flight }: Props) {
-    const leg = flight.legs[0];
-    if (!leg) return null;
-
-    const carrier = leg.carriers.marketing[0];
-    const stops = leg.stopCount === 0 ? 'Direct' : `${leg.stopCount} stop${leg.stopCount > 1 ? 's' : ''}`;
+export default function FlightResultCard({ flight, directPrice }: Props) {
+    const navigate = useNavigate();
+    const leg = flight.outbound;
+    const stopsLabel = leg.stops === 0 ? 'Direct' : `${leg.stops} stop${leg.stops > 1 ? 's' : ''}`;
+    const dayDelta = Math.floor(
+        (new Date(leg.arrive).getTime() - new Date(leg.depart).getTime()) / 86_400_000
+    );
+    // Only show savings if direct is plausibly the same trip (not an outlier 3x+ the price)
+    const isPlausibleDirect = directPrice && directPrice < flight.price * 3;
+    const savings = isPlausibleDirect && leg.stops >= 1 ? directPrice - flight.price : null;
+    const hasQuest = !!leg.primaryLayover;
 
     return (
-        <div
-            className="rounded-xl border border-amber-800/30 p-5 shadow-sm flex items-center justify-between gap-4"
-            style={{ backgroundColor: '#fdf5e4' }}
-        >
-            <div className="flex items-center gap-3 min-w-0">
-                {carrier?.logoUrl && (
-                    <img src={carrier.logoUrl} alt={carrier.name} className="w-8 h-8 rounded object-contain shrink-0" />
-                )}
-                <div className="min-w-0">
-                    <p
-                        className="text-xs text-stone-400 truncate"
-                        style={{ fontFamily: "'Instrument Serif', serif" }}
-                    >
-                        {carrier?.name ?? 'Unknown airline'}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                        <span
-                            className="text-lg font-semibold text-stone-800"
-                            style={{ fontFamily: "'Instrument Serif', serif" }}
-                        >
-                            {formatTime(leg.departure)}
-                        </span>
-                        <span className="text-stone-400 text-sm">→</span>
-                        <span
-                            className="text-lg font-semibold text-stone-800"
-                            style={{ fontFamily: "'Instrument Serif', serif" }}
-                        >
-                            {formatTime(leg.arrival)}
-                        </span>
+        <div className="rounded-xl border border-amber-800/30 p-5 shadow-sm" style={{ backgroundColor: '#fdf5e4' }}>
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2.5 w-36 flex-shrink-0">
+                    {leg.carrierLogo && (
+                        <img
+                            src={leg.carrierLogo}
+                            alt={leg.carrier}
+                            className="w-8 h-8 object-contain rounded"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                    )}
+                    <div>
+                        <p className="text-sm text-stone-800 leading-tight" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                            {leg.carrier}
+                        </p>
+                        <p className="text-xs text-stone-400 mt-0.5">{stopsLabel}</p>
                     </div>
-                    <p className="text-xs text-stone-400 mt-0.5">
-                        {leg.origin.displayCode} → {leg.destination.displayCode} · {formatDuration(leg.durationInMinutes)} · {stops}
+                </div>
+
+                <div className="flex-1 flex items-center gap-3">
+                    <div className="text-center">
+                        <p className="text-xl font-semibold text-stone-800" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                            {fmtTime(leg.depart)}
+                        </p>
+                        <p className="text-xs text-stone-400 tracking-wide mt-0.5">{leg.from}</p>
+                    </div>
+
+                    <div className="flex-1 flex flex-col items-center gap-1">
+                        <p className="text-xs text-amber-800">{fmtDuration(leg.durationMin)}</p>
+                        <div className="w-full flex items-center gap-1">
+                            <div className="w-2 h-2 rounded-full bg-amber-800 flex-shrink-0" />
+                            <div className="flex-1 border-t border-dashed border-amber-800/50" />
+                            <div className="w-2 h-2 rounded-full bg-amber-800 flex-shrink-0" />
+                        </div>
+                        {leg.primaryLayover && (
+                            <p className="text-xs text-amber-800/70">
+                                via {leg.primaryLayover.city} ({fmtDuration(leg.primaryLayover.waitMinutes)})
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="text-center">
+                        <p className="text-xl font-semibold text-stone-800" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                            {fmtTime(leg.arrive)}
+                            {dayDelta > 0 && (
+                                <span className="text-xs text-amber-800 ml-1">+{dayDelta}</span>
+                            )}
+                        </p>
+                        <p className="text-xs text-stone-400 tracking-wide mt-0.5">{leg.to}</p>
+                    </div>
+                </div>
+
+                <div className="text-right flex-shrink-0">
+                    <p className="text-2xl font-bold text-stone-800" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                        £{flight.price.toFixed(2)}
                     </p>
+                    <p className="text-xs text-stone-400 mt-0.5">per person</p>
+                    {savings !== null && savings > 0 && (
+                        <p className="text-xs text-green-800 mt-1 font-semibold">
+                            save £{savings.toFixed(0)} vs direct
+                        </p>
+                    )}
                 </div>
             </div>
 
-            <div className="text-right shrink-0">
-                <p
-                    className="text-xl font-bold text-stone-800"
-                    style={{ fontFamily: "'Instrument Serif', serif" }}
-                >
-                    {flight.price.formatted}
-                </p>
-            </div>
+            {hasQuest && (
+                <div className="mt-4 pt-4 border-t border-amber-800/20 flex items-center justify-between">
+                    <p className="text-sm text-stone-600" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                        Spare {fmtDuration(leg.primaryLayover!.waitMinutes)} in {leg.primaryLayover!.city}.
+                    </p>
+                    <button
+                        onClick={() => navigate('/quest', { state: { flight } })}
+                        className="rounded-xl px-5 py-2.5 text-amber-50 text-sm hover:bg-stone-700 transition-colors"
+                        style={{ backgroundColor: '#3d2314', fontFamily: "'Instrument Serif', serif" }}
+                    >
+                        Start sidequest →
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

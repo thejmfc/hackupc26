@@ -1,35 +1,31 @@
-export interface AirportOption {
-    skyId: string;
-    entityId: string;
-    name: string;
-    subtitle: string;
-}
-
-export interface FlightCarrier {
-    name: string;
-    logoUrl: string;
-}
-
-export interface FlightEndpoint {
-    displayCode: string;
-    name?: string;
-    city?: string;
+export interface Layover {
+    airport: string;
+    airportName: string;
+    city: string;
+    waitMinutes: number;
+    arriveAt: string;
+    departAt: string;
 }
 
 export interface FlightLeg {
-    origin: FlightEndpoint;
-    destination: FlightEndpoint;
-    departure: string;
-    arrival: string;
-    durationInMinutes: number;
-    stopCount: number;
-    carriers: {
-        marketing: FlightCarrier[];
-    };
+    from: string;
+    fromName: string;
+    to: string;
+    toName: string;
+    depart: string;
+    arrive: string;
+    durationMin: number;
+    stops: number;
+    carrier: string;
+    carrierLogo: string;
+    layovers: Layover[];
+    primaryLayover: Layover | null;
 }
 
 export interface FlightResult {
     id: string;
-    price: { raw: number; formatted: string };
-    legs: FlightLeg[];
+    price: number;
+    deepLink: string;
+    outbound: FlightLeg;
+    inbound: FlightLeg | null;
 }

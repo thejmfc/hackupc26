@@ -35,18 +35,14 @@ function App() {
 
         map.on('load', () => {
             countries.forEach((country) => {
-                const btn = document.createElement('button');
-                btn.className = 'country-btn';
-                btn.textContent = country.name;
-
-                btn.onclick = () => {
-                    alert(`You clicked on ${country.name}`);
-                    map.flyTo({ center: country.coords, zoom: 5 });
-                };
-
-                new mapboxgl.Marker(btn)
+                const marker = new mapboxgl.Marker({ color: '#FF0000' })
                     .setLngLat(country.coords)
                     .addTo(map);
+
+                marker.getElement().addEventListener('click', () => {
+                    alert(`You clicked on ${country.name}`);
+                    map.flyTo({ center: country.coords, zoom: 5 });
+                });
             });
         });
 

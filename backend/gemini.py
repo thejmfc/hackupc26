@@ -11,7 +11,7 @@ def generate(prompt: str):
         api_key=os.getenv("GEMINI_API_KEY"),
     )
 
-    model = "gemma-4-31b-it"
+    model = "gemini-3.1-flash-lite-preview"
     contents = [
         types.Content(
             role="user",

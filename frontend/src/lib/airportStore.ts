@@ -1,4 +1,5 @@
 import type { Airport } from '../components/Airport';
+import type { SidequestResponse } from '../types/sidequest';
 
 type SelectionListener = (departure: Airport | null, destination: Airport | null) => void;
 type ClearListener = () => void;
@@ -50,4 +51,17 @@ export function notifyReset() {
 export function onReset(listener: ResetListener): () => void {
     resetListeners.add(listener);
     return () => resetListeners.delete(listener);
+}
+
+type SidequestListener = (data: SidequestResponse) => void;
+const sidequestListeners = new Set<SidequestListener>();
+
+/** Called by InputBar when sidequest data arrives for a layover. */
+export function notifySidequests(data: SidequestResponse) {
+    sidequestListeners.forEach(l => l(data));
+}
+
+export function onSidequests(listener: SidequestListener): () => void {
+    sidequestListeners.add(listener);
+    return () => sidequestListeners.delete(listener);
 }

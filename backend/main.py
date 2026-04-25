@@ -47,7 +47,16 @@ async def health():
 @app.get("/api/generate")
 async def generate(prompt: str):
     print(f"Received prompt: {prompt}")
-    return generate_with_prompt(prompt)
+    raw = generate_with_prompt(prompt)
+    # Gemini may return a string; parse it so FastAPI encodes it once
+    if isinstance(raw, str):
+        # Extract the outermost {...} in case the model appended extra tokens
+        import re
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if match:
+            return json.loads(match.group(0))
+        return json.loads(raw)
+    return raw
 
 
 @app.get("/api/calculate-value")

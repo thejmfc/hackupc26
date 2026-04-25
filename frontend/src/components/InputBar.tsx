@@ -1,5 +1,11 @@
+/*
+{"layover_airport": "MAN", "layover_flight_arrival": "2026-04-30T10:25:00Z", "layover_flight_departure": "2026-04-30T17:40:00Z", "time_to_complete_quests": 4.5, "sidequests": [{"type": "culture", "description": "Visit the John Rylands Research Institute and Library", "time_to_complete": 2, "time_to_travel": 1, "price": 0, "latitude": 53.4777, "longitude": -2.2412}, {"type": "shopping", "description": "Explore the Northern Quarter's independent shops and street art", "time_to_complete": 1.5, "time_to_travel": 0.5, "price": 15, "latitude": 53.4833, "longitude": -2.2333}, {"type": "shopping", "description": "description: Visit the Northern Quarter's independent shops and street art", "time_to_complete": 1, "time_to_travel": 0.5, "price": 15, "latitude": 53.4833, "longitude": -2.2333}] }
+*/
+
+
 import { useState, useEffect } from 'react';
-import { onSelection, notifyClear, notifyRoute, notifyReset } from '../lib/airportStore';
+import { onSelection, notifyClear, notifyRoute, notifyReset, notifySidequests } from '../lib/airportStore';
+import type { SidequestResponse } from '../types/sidequest';
 
 function InputBar() {
     const [departure, setDeparture] = useState('');
@@ -15,13 +21,21 @@ function InputBar() {
         });
     }, []);
 
-    const getSideQuest = async (params: Record<string, string>) => {
+    const getSideQuests = async (params: Record<string, string>) => {
         const url = `http://localhost:8000/api/generate?${new URLSearchParams(params)}`;
+        console.log('Fetching sidequests with params:', params);
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         const data = await res.json();
-        console.log('Side quest response:', data);
-        return data;
+        console.log('Received sidequests:', data);
+        let parsed: SidequestResponse;
+        if (typeof data === 'string') {
+            const match = data.match(/\{[\s\S]*\}/);
+            parsed = JSON.parse(match ? match[0] : data);
+        } else {
+            parsed = data as SidequestResponse;
+        }
+        notifySidequests(parsed);
     }
 
     const handleSearch = async () => {
@@ -43,6 +57,7 @@ function InputBar() {
             const res = await fetch(`http://localhost:8000/flights?${params}`);
             if (!res.ok) throw new Error(`Server error: ${res.status}`);
             const data = await res.json();
+            console.log('Received flight data:', data);
 
             const first = data.flights?.[0];
             if (first?.outbound) {
@@ -52,7 +67,7 @@ function InputBar() {
                 setRouteActive(true);
                 console.log('Route found:', [from, ...layoverCodes, to]);
                 for (const layover of data.flights[0].outbound.layovers ?? []) {
-                    getSideQuest({ prompt: JSON.stringify(layover) });
+                    getSideQuests({ prompt: JSON.stringify(layover) });
                 }
             }
         } catch (err) {

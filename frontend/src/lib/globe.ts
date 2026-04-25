@@ -2,7 +2,8 @@ import type { RefObject } from 'react';
 
 import { fetchCapitals } from './capitals';
 import { fetchAirports, fetchAirportByIata, addAirportMarkers, type Airport } from '../components/Airport';
-import { notifySelection, onClear, onRoute, onReset } from './airportStore';
+import { notifySelection, onClear, onRoute, onReset, onSidequests } from './airportStore';
+import type { SidequestResponse, Activity } from '../types/sidequest';
 import mapboxgl from 'mapbox-gl';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
@@ -15,6 +16,7 @@ export default class Globe {
 
     private airportMarkers: mapboxgl.Marker[] = [];
     private routeMarkers: mapboxgl.Marker[] = [];
+    private sidequestMarkers: mapboxgl.Marker[] = [];
     private routeActive = false;
     private departureAirport: Airport | null = null;
     private destinationAirport: Airport | null = null;
@@ -58,6 +60,7 @@ export default class Globe {
 
         const unsubRoute = onRoute(async (iatas) => {
             if (!this.map.getCanvas()) return;
+            this._clearSidequests();
             const airports = (await Promise.all(iatas.map(iata => fetchAirportByIata(iata))))
                 .filter((a): a is Airport => a !== null);
             if (airports.length < 2) {
@@ -102,9 +105,47 @@ export default class Globe {
         const unsubReset = onReset(() => {
             if (!this.map.getCanvas()) return;
             this._clearRoute();
+            this._clearSidequests();
             this.routeActive = false;
             // Restore capital markers
             this.markers.forEach(m => m.getElement().style.display = '');
+        });
+
+        const unsubSidequests = onSidequests((data: SidequestResponse) => {
+            if (!this.map.getCanvas()) return;
+            data.sidequests.forEach((activity: Activity) => {
+                const colour = this._activityColour(activity.type);
+                const el = document.createElement('div');
+                el.style.cssText = `width:14px;height:14px;border-radius:50%;background:${colour};border:2.5px solid #fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.35);`;
+                el.title = activity.description;
+
+                const travelLine = activity.time_to_travel != null
+                    ? `<div style="color:#78716c">&#x1F6A6; ${activity.time_to_travel}h travel</div>`
+                    : '';
+                const priceLine = activity.price === 0
+                    ? 'Free'
+                    : `&#x20AC;${activity.price}`;
+
+                const popup = new mapboxgl.Popup({ offset: 12, maxWidth: '240px' }).setHTML(
+                    `<div style="font-family:'Instrument Serif',serif;padding:2px 4px">
+                        <div style="font-weight:700;text-transform:capitalize;color:#3d2314;margin-bottom:4px">${activity.type}</div>
+                        <div style="color:#1c1917;margin-bottom:6px">${activity.description}</div>
+                        <div style="color:#78716c">&#x23F1; ${activity.time_to_complete}h &nbsp;|&nbsp; ${priceLine}</div>
+                        ${travelLine}
+                    </div>`
+                );
+
+                const marker = new mapboxgl.Marker({ element: el })
+                    .setLngLat([activity.longitude, activity.latitude])
+                    .setPopup(popup)
+                    .addTo(this.map);
+
+                // Open popup on hover as well as click
+                el.addEventListener('mouseenter', () => marker.getPopup().addTo(this.map));
+                el.addEventListener('mouseleave', () => marker.getPopup().remove());
+
+                this.sidequestMarkers.push(marker);
+            });
         });
 
         // Unsubscribe store listeners when the map is destroyed (e.g. React StrictMode double-mount)
@@ -112,6 +153,7 @@ export default class Globe {
             unsubClear();
             unsubRoute();
             unsubReset();
+            unsubSidequests();
         });
     }
 
@@ -178,6 +220,23 @@ export default class Globe {
         this.routeMarkers = [];
         const src = this.map.getSource('route') as mapboxgl.GeoJSONSource | undefined;
         src?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
+    }
+
+    private _clearSidequests() {
+        this.sidequestMarkers.forEach(m => m.remove());
+        this.sidequestMarkers = [];
+    }
+
+    private _activityColour(type: string): string {
+        const map: Record<string, string> = {
+            culture: '#7c3aed',
+            shopping: '#db2777',
+            food: '#ea580c',
+            restaurant: '#ea580c',
+            nature: '#16a34a',
+            sport: '#0284c7',
+        };
+        return map[type.toLowerCase()] ?? '#d97706';
     }
 
     resetMarkers() {

@@ -18,7 +18,7 @@ Respond with valid JSON only, matching this exact schema:
   "sidequests": [
     {
       "type": "<category: food, culture, nature, or shopping>",
-      "description": "<activity description>",
+      "description": "<one or two sentences about what the activity involves>",
       "time_to_complete": <duration in hours as number>,
       "time_to_travel": <travel time in hours as number>,
       "price": <estimated cost in GBP as number>,
@@ -27,7 +27,7 @@ Respond with valid JSON only, matching this exact schema:
     }
   ]
 }
-Rules: suggest 3-6 practical activities, account for travel time, leave a 2-hour buffer before departure unless told otherwise, use real place names and accurate coordinates, all numeric fields must be numbers not strings."""
+Rules: suggest 3-6 practical activities, account for travel time, leave a 2-hour buffer before departure unless told otherwise, use real place names and accurate coordinates, all numeric fields must be numbers not strings, never prefix a value with its field name."""
 
 
 def generate(prompt: str) -> str:
@@ -119,6 +119,8 @@ def generate_with_prompt_google(user_prompt: str) -> str:
         "Consider the time to travel between locations and suggest a logical flow of activities. "
         "Account for transportation costs within the budget. "
         "Leave a 2-hour buffer before the next flight unless the user specifies otherwise."
+        "If the layover is long and overnight, suggest activities in line with the times they are availale."
+        "If the layover is long and overnight, take into account that the user should always at some point, and suggest a good time for that."
     )
     print("Now generating (Google AI Studio)...")
     return generate_google(prompt)

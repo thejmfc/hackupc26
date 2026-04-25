@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 
 import { fetchCapitals, type Capital } from './capitals';
+
 import mapboxgl from 'mapbox-gl';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_API_TOKEN;
@@ -26,6 +27,7 @@ export default class Globe {
     }
 
     addMarker(capital: Capital, onClick?: (capital: Capital) => void) {
+        console.log("[Globe/Handler] Adding marker for country: " + capital.name);
         const marker = new mapboxgl.Marker({ color: markerColour })
             .setLngLat(capital.coords)
             .addTo(this.map);
@@ -40,6 +42,6 @@ export default class Globe {
     resetMarkers() {
         this.markers.forEach(marker => marker.remove());
         this.markers = [];
-        console.log("[Map/Handler] Markers have been reset.");
+        console.log("[Globe/Handler] Markers have been reset.");
     }
 }

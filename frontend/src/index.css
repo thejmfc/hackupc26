@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+body {
+  font-family: 'Instrument Serif', serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+}
+
+input.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 #root {
   position: absolute;
   top: 0;

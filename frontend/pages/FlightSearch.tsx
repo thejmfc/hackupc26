@@ -1,162 +1,47 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { AirportOption, FlightResult } from '../types/flights';
+import type { FlightResult } from '../types/flights';
 import FlightResultCard from '../components/FlightResultCard';
+import Spinner from '../components/Spinner';
 
-async function fetchAirports(query: string): Promise<AirportOption[]> {
-    if (query.trim().length < 2) return [];
-    const res = await fetch(`http://localhost:8000/airports?query=${encodeURIComponent(query)}`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.data ?? []).slice(0, 6).map((item: any) => ({
-        skyId: item.skyId,
-        entityId: item.entityId,
-        name: item.presentation?.title ?? item.skyId,
-        subtitle: item.presentation?.subtitle ?? '',
-    }));
-}
-
-interface AirportInputProps {
-    label: string;
-    value: string;
-    onChange: (val: string) => void;
-    onSelect: (airport: AirportOption) => void;
-    suggestions: AirportOption[];
-    placeholder: string;
-}
-
-function AirportInput({ label, value, onChange, onSelect, suggestions, placeholder }: AirportInputProps) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-        <div className="flex-1 relative">
-            <label
-                className="block text-xs text-stone-500 uppercase tracking-widest mb-1.5"
-                style={{ fontFamily: "'Instrument Serif', serif" }}
-            >
-                {label}
-            </label>
-            <input
-                type="text"
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                onFocus={() => setIsOpen(true)}
-                onBlur={() => setIsOpen(false)}
-                placeholder={placeholder}
-                className="w-full rounded-xl border border-amber-800/40 px-4 py-3 text-stone-800 placeholder-stone-400 outline-none focus:border-amber-900 focus:ring-2 focus:ring-amber-900/20 transition-colors"
-                style={{ backgroundColor: '#f0e4c0', fontFamily: "'Instrument Serif', serif" }}
-            />
-            {isOpen && suggestions.length > 0 && (
-                <div
-                    className="absolute top-full left-0 right-0 z-20 mt-1 rounded-xl shadow-lg border border-amber-800/20 overflow-hidden"
-                    style={{ backgroundColor: '#fdf5e4' }}
-                >
-                    {suggestions.map(airport => (
-                        <button
-                            key={airport.entityId}
-                            onMouseDown={() => onSelect(airport)}
-                            className="w-full text-left px-4 py-3 hover:bg-amber-800/10 transition-colors flex items-center justify-between border-b border-amber-800/10 last:border-0"
-                        >
-                            <div>
-                                <span
-                                    className="text-stone-800 text-sm"
-                                    style={{ fontFamily: "'Instrument Serif', serif" }}
-                                >
-                                    {airport.name}
-                                </span>
-                                {airport.subtitle && (
-                                    <span className="text-stone-400 text-xs ml-2">{airport.subtitle}</span>
-                                )}
-                            </div>
-                            <span className="text-xs font-mono text-amber-800 font-semibold ml-4 shrink-0">
-                                {airport.skyId}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
+const API_URL = 'http://localhost:8000';
 
 export default function FlightSearch() {
-    const [origin, setOrigin] = useState<AirportOption | null>(null);
-    const [dest, setDest] = useState<AirportOption | null>(null);
-    const [originInput, setOriginInput] = useState('');
-    const [destInput, setDestInput] = useState('');
-    const [originSuggestions, setOriginSuggestions] = useState<AirportOption[]>([]);
-    const [destSuggestions, setDestSuggestions] = useState<AirportOption[]>([]);
+    const [origin, setOrigin] = useState('');
+    const [dest, setDest] = useState('');
     const [date, setDate] = useState('');
     const [flights, setFlights] = useState<FlightResult[]>([]);
+    const [directPrice, setDirectPrice] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const originTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const destTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    function handleOriginChange(val: string) {
-        setOriginInput(val);
-        setOrigin(null);
-        if (originTimer.current) clearTimeout(originTimer.current);
-        if (val.trim().length < 2) { setOriginSuggestions([]); return; }
-        originTimer.current = setTimeout(async () => {
-            const results = await fetchAirports(val);
-            setOriginSuggestions(results);
-        }, 400);
-    }
-
-    function handleDestChange(val: string) {
-        setDestInput(val);
-        setDest(null);
-        if (destTimer.current) clearTimeout(destTimer.current);
-        if (val.trim().length < 2) { setDestSuggestions([]); return; }
-        destTimer.current = setTimeout(async () => {
-            const results = await fetchAirports(val);
-            setDestSuggestions(results);
-        }, 400);
-    }
-
-    function selectOrigin(airport: AirportOption) {
-        setOrigin(airport);
-        setOriginInput(`${airport.skyId} · ${airport.name}`);
-        setOriginSuggestions([]);
-    }
-
-    function selectDest(airport: AirportOption) {
-        setDest(airport);
-        setDestInput(`${airport.skyId} · ${airport.name}`);
-        setDestSuggestions([]);
-    }
-
     function swapAirports() {
-        const o = origin, d = dest, oi = originInput, di = destInput;
-        setOrigin(d);
-        setDest(o);
-        setOriginInput(di);
-        setDestInput(oi);
-        setOriginSuggestions([]);
-        setDestSuggestions([]);
+        setOrigin(dest);
+        setDest(origin);
     }
 
     async function handleSearch() {
         if (!origin || !dest || !date) return;
+        const [y, m, d] = date.split('-').map(Number);
         setLoading(true);
         setError(null);
         setFlights([]);
+        setDirectPrice(null);
         setSearched(true);
         try {
             const params = new URLSearchParams({
-                origin_sky_id: origin.skyId,
-                destination_sky_id: dest.skyId,
-                origin_entity_id: origin.entityId,
-                destination_entity_id: dest.entityId,
-                date,
+                origin: origin.toUpperCase(),
+                destination: dest.toUpperCase(),
+                year: String(y),
+                month: String(m),
+                day: String(d),
             });
-            const res = await fetch(`http://localhost:8000/flights/search?${params}`);
+            const res = await fetch(`${API_URL}/flights?${params}`);
             if (!res.ok) throw new Error(`Server error: ${res.status}`);
             const data = await res.json();
-            setFlights(data.data?.itineraries ?? []);
+            setFlights(data.flights ?? []);
+            setDirectPrice(data.directPrice ?? null);
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Something went wrong');
         } finally {
@@ -164,7 +49,7 @@ export default function FlightSearch() {
         }
     }
 
-    const canSearch = !!origin && !!dest && !!date;
+    const canSearch = origin.length === 3 && dest.length === 3 && !!date;
 
     return (
         <div className="min-h-screen py-16 px-4" style={{ backgroundColor: '#f0e4c0' }}>
@@ -180,7 +65,6 @@ export default function FlightSearch() {
                     </Link>
                 </div>
 
-                {/* Search card */}
                 <div
                     className="rounded-xl border border-amber-800/30 p-6 shadow-sm flex flex-col gap-5"
                     style={{ backgroundColor: '#fdf5e4' }}
@@ -189,19 +73,27 @@ export default function FlightSearch() {
                         className="text-stone-500 text-sm"
                         style={{ fontFamily: "'Instrument Serif', serif" }}
                     >
-                        Find your next flight.
+                        Enter IATA airport codes (e.g. LHR, JFK, NRT).
                     </p>
 
-                    {/* Airport row */}
                     <div className="flex gap-3 items-end">
-                        <AirportInput
-                            label="From"
-                            value={originInput}
-                            onChange={handleOriginChange}
-                            onSelect={selectOrigin}
-                            suggestions={originSuggestions}
-                            placeholder="City or airport"
-                        />
+                        <div className="flex-1">
+                            <label
+                                className="block text-xs text-stone-500 uppercase tracking-widest mb-1.5"
+                                style={{ fontFamily: "'Instrument Serif', serif" }}
+                            >
+                                From
+                            </label>
+                            <input
+                                type="text"
+                                value={origin}
+                                onChange={e => setOrigin(e.target.value.toUpperCase().slice(0, 3))}
+                                placeholder="LHR"
+                                maxLength={3}
+                                className="w-full rounded-xl border border-amber-800/40 px-4 py-3 text-stone-800 placeholder-stone-400 outline-none focus:border-amber-900 focus:ring-2 focus:ring-amber-900/20 transition-colors uppercase font-mono"
+                                style={{ backgroundColor: '#f0e4c0' }}
+                            />
+                        </div>
 
                         <button
                             onClick={swapAirports}
@@ -212,17 +104,25 @@ export default function FlightSearch() {
                             ⇄
                         </button>
 
-                        <AirportInput
-                            label="To"
-                            value={destInput}
-                            onChange={handleDestChange}
-                            onSelect={selectDest}
-                            suggestions={destSuggestions}
-                            placeholder="City or airport"
-                        />
+                        <div className="flex-1">
+                            <label
+                                className="block text-xs text-stone-500 uppercase tracking-widest mb-1.5"
+                                style={{ fontFamily: "'Instrument Serif', serif" }}
+                            >
+                                To
+                            </label>
+                            <input
+                                type="text"
+                                value={dest}
+                                onChange={e => setDest(e.target.value.toUpperCase().slice(0, 3))}
+                                placeholder="JFK"
+                                maxLength={3}
+                                className="w-full rounded-xl border border-amber-800/40 px-4 py-3 text-stone-800 placeholder-stone-400 outline-none focus:border-amber-900 focus:ring-2 focus:ring-amber-900/20 transition-colors uppercase font-mono"
+                                style={{ backgroundColor: '#f0e4c0' }}
+                            />
+                        </div>
                     </div>
 
-                    {/* Date row */}
                     <div>
                         <label
                             className="block text-xs text-stone-500 uppercase tracking-widest mb-1.5"
@@ -243,34 +143,54 @@ export default function FlightSearch() {
                     <button
                         onClick={handleSearch}
                         disabled={loading || !canSearch}
-                        className="w-full rounded-xl px-6 py-4 text-amber-50 font-medium hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="w-full rounded-xl px-6 py-4 text-amber-50 font-medium hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                         style={{ backgroundColor: '#3d2314', fontFamily: "'Instrument Serif', serif" }}
                     >
+                        {loading && <Spinner size={18} className="text-amber-50" />}
                         {loading ? 'Searching...' : 'Search flights'}
                     </button>
                 </div>
 
-                {error && <p className="text-red-900 text-sm">{error}</p>}
+                {error && (
+                    <div
+                        className="rounded-xl border border-red-900/30 p-4 text-red-900 text-sm"
+                        style={{ backgroundColor: '#fdf5e4', fontFamily: "'Instrument Serif', serif" }}
+                    >
+                        {error}
+                    </div>
+                )}
 
                 {loading && (
                     <div
-                        className="text-center text-stone-400 py-8"
+                        className="flex flex-col items-center gap-3 text-stone-500 py-8"
                         style={{ fontFamily: "'Instrument Serif', serif" }}
                     >
-                        Searching for flights...
+                        <Spinner size={28} className="text-amber-800" />
+                        <p>Searching {origin} → {dest}...</p>
+                        <p className="text-xs text-stone-400">This usually takes a few seconds</p>
                     </div>
                 )}
 
                 {!loading && flights.length > 0 && (
                     <div className="flex flex-col gap-3">
-                        <p
-                            className="text-sm text-stone-500"
-                            style={{ fontFamily: "'Instrument Serif', serif" }}
-                        >
-                            {flights.length} result{flights.length !== 1 ? 's' : ''}
-                        </p>
+                        <div className="flex items-baseline justify-between">
+                            <p
+                                className="text-sm text-stone-500"
+                                style={{ fontFamily: "'Instrument Serif', serif" }}
+                            >
+                                {flights.length} result{flights.length !== 1 ? 's' : ''}
+                            </p>
+                            {directPrice !== null && (
+                                <p
+                                    className="text-xs text-stone-500"
+                                    style={{ fontFamily: "'Instrument Serif', serif" }}
+                                >
+                                    Cheapest direct: <span className="text-stone-800 font-semibold">£{directPrice.toFixed(0)}</span>
+                                </p>
+                            )}
+                        </div>
                         {flights.map(flight => (
-                            <FlightResultCard key={flight.id} flight={flight} />
+                            <FlightResultCard key={flight.id} flight={flight} directPrice={directPrice} />
                         ))}
                     </div>
                 )}

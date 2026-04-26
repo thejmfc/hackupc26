@@ -15,7 +15,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/" element={<Landing />} />
                 <Route path="/app" element={<App />} />
                 <Route path="/generated/sidequests" element={<GeneratedSidequests />} />
-                <Route path="/flights" element={<FlightSearch />} />
+                <Route path="/flights" element={<App />} />
                 <Route path="/quest" element={<Quest />} />
             </Routes>
         </BrowserRouter>
